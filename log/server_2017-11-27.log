@@ -1,0 +1,12 @@
+2017-11-27 01:53:58:{"onConnect":["tcp\\Server","onConnect"],"onReceive":["tcp\\Server","onReceive"],"onClose":["tcp\\Server","onClose"],"onPacket":null,"onBufferFull":null,"onBufferEmpty":null,"onStart":["tcp\\Server","onStart"],"onShutdown":["tcp\\Server","onShutdown"],"onWorkerStart":null,"onWorkerStop":null,"onWorkerExit":null,"onWorkerError":null,"onTask":null,"onFinish":null,"onManagerStart":null,"onManagerStop":null,"onPipeMessage":null,"setting":{"worker_num":8,"daemonize":false,"max_request":10000,"dispatch_mode":2,"debug_mode":1},"connections":{},"host":"0.0.0.0","port":9566,"type":1,"mode":3,"ports":[{"onConnect":["tcp\\Server","onConnect"],"onReceive":["tcp\\Server","onReceive"],"onClose":["tcp\\Server","onClose"],"onPacket":null,"onBufferFull":null,"onBufferEmpty":null,"onRequest":null,"onHandShake":null,"onMessage":null,"onOpen":null,"host":"0.0.0.0","port":9566,"type":1,"sock":3,"setting":{"worker_num":8,"daemonize":false,"max_request":10000,"dispatch_mode":2,"debug_mode":1}}],"master_pid":530,"manager_pid":531,"worker_id":0,"taskworker":false,"worker_pid":0}
+2017-11-27 01:53:58:
+                     _        __    __     _____,
+                    | |       \ \  / /    / ____|       
+ __      __      __ | |        \ \/ /    | (___
+ \ \    /  \    / / | |         \ \/      \___ \
+  \ \  / /\ \  / /  | |         /\ \          ) |
+   \ \/ /  \ \/ /   | |___/|   / /\ \     ____/ /
+    \__/    \__/    |______|  /_/  \_\   |_____/                     
+                               
+530|531|9566
+

@@ -1,0 +1,38 @@
+2017-11-24 10:35:42:{"onConnect":["tcp\\Server","onConnect"],"onReceive":["tcp\\Server","onReceive"],"onClose":["tcp\\Server","onClose"],"onPacket":null,"onBufferFull":null,"onBufferEmpty":null,"onStart":["tcp\\Server","onStart"],"onShutdown":null,"onWorkerStart":null,"onWorkerStop":null,"onWorkerExit":null,"onWorkerError":null,"onTask":null,"onFinish":null,"onManagerStart":null,"onManagerStop":null,"onPipeMessage":null,"setting":{"worker_num":8,"daemonize":false,"max_request":10000,"dispatch_mode":2,"debug_mode":1},"connections":{},"host":"0.0.0.0","port":9566,"type":1,"mode":3,"ports":[{"onConnect":["tcp\\Server","onConnect"],"onReceive":["tcp\\Server","onReceive"],"onClose":["tcp\\Server","onClose"],"onPacket":null,"onBufferFull":null,"onBufferEmpty":null,"onRequest":null,"onHandShake":null,"onMessage":null,"onOpen":null,"host":"0.0.0.0","port":9566,"type":1,"sock":3,"setting":{"worker_num":8,"daemonize":false,"max_request":10000,"dispatch_mode":2,"debug_mode":1}}],"master_pid":20227,"manager_pid":20228,"worker_id":0,"taskworker":false,"worker_pid":0}
+2017-11-24 10:39:27:{"onConnect":["tcp\\Server","onConnect"],"onReceive":["tcp\\Server","onReceive"],"onClose":["tcp\\Server","onClose"],"onPacket":null,"onBufferFull":null,"onBufferEmpty":null,"onStart":["tcp\\Server","onStart"],"onShutdown":null,"onWorkerStart":null,"onWorkerStop":null,"onWorkerExit":null,"onWorkerError":null,"onTask":null,"onFinish":null,"onManagerStart":null,"onManagerStop":null,"onPipeMessage":null,"setting":{"worker_num":8,"daemonize":false,"max_request":10000,"dispatch_mode":2,"debug_mode":1},"connections":{},"host":"0.0.0.0","port":9566,"type":1,"mode":3,"ports":[{"onConnect":["tcp\\Server","onConnect"],"onReceive":["tcp\\Server","onReceive"],"onClose":["tcp\\Server","onClose"],"onPacket":null,"onBufferFull":null,"onBufferEmpty":null,"onRequest":null,"onHandShake":null,"onMessage":null,"onOpen":null,"host":"0.0.0.0","port":9566,"type":1,"sock":3,"setting":{"worker_num":8,"daemonize":false,"max_request":10000,"dispatch_mode":2,"debug_mode":1}}],"master_pid":20427,"manager_pid":20428,"worker_id":0,"taskworker":false,"worker_pid":0}
+2017-11-24 13:27:22:{"onConnect":["tcp\\Server","onConnect"],"onReceive":["tcp\\Server","onReceive"],"onClose":["tcp\\Server","onClose"],"onPacket":null,"onBufferFull":null,"onBufferEmpty":null,"onStart":["tcp\\Server","onStart"],"onShutdown":null,"onWorkerStart":null,"onWorkerStop":null,"onWorkerExit":null,"onWorkerError":null,"onTask":null,"onFinish":null,"onManagerStart":null,"onManagerStop":null,"onPipeMessage":null,"setting":{"worker_num":8,"daemonize":false,"max_request":10000,"dispatch_mode":2,"debug_mode":1},"connections":{},"host":"0.0.0.0","port":9566,"type":1,"mode":3,"ports":[{"onConnect":["tcp\\Server","onConnect"],"onReceive":["tcp\\Server","onReceive"],"onClose":["tcp\\Server","onClose"],"onPacket":null,"onBufferFull":null,"onBufferEmpty":null,"onRequest":null,"onHandShake":null,"onMessage":null,"onOpen":null,"host":"0.0.0.0","port":9566,"type":1,"sock":3,"setting":{"worker_num":8,"daemonize":false,"max_request":10000,"dispatch_mode":2,"debug_mode":1}}],"master_pid":20943,"manager_pid":20944,"worker_id":0,"taskworker":false,"worker_pid":0}
+2017-11-24 13:27:22:
+                     _        __    __     _____,
+__      __      __  | |       \ \  / /    / ____|       
+\ \    /  \    / /  | |        \ \/ /    | (___
+ \ \  / /\ \  / /   | |         \ \/      \___ \
+  \ \/ /  \ \/ /    | |         /\ \          ) |
+   \__/    \__/     | |___/|   / /\ \     ____/ /
+                    |______|  /_/  \_\   |_____/                 
+                               
+20943|20944|9566
+
+2017-11-24 13:28:21:{"onConnect":["tcp\\Server","onConnect"],"onReceive":["tcp\\Server","onReceive"],"onClose":["tcp\\Server","onClose"],"onPacket":null,"onBufferFull":null,"onBufferEmpty":null,"onStart":["tcp\\Server","onStart"],"onShutdown":null,"onWorkerStart":null,"onWorkerStop":null,"onWorkerExit":null,"onWorkerError":null,"onTask":null,"onFinish":null,"onManagerStart":null,"onManagerStop":null,"onPipeMessage":null,"setting":{"worker_num":8,"daemonize":false,"max_request":10000,"dispatch_mode":2,"debug_mode":1},"connections":{},"host":"0.0.0.0","port":9566,"type":1,"mode":3,"ports":[{"onConnect":["tcp\\Server","onConnect"],"onReceive":["tcp\\Server","onReceive"],"onClose":["tcp\\Server","onClose"],"onPacket":null,"onBufferFull":null,"onBufferEmpty":null,"onRequest":null,"onHandShake":null,"onMessage":null,"onOpen":null,"host":"0.0.0.0","port":9566,"type":1,"sock":3,"setting":{"worker_num":8,"daemonize":false,"max_request":10000,"dispatch_mode":2,"debug_mode":1}}],"master_pid":20962,"manager_pid":20963,"worker_id":0,"taskworker":false,"worker_pid":0}
+2017-11-24 13:28:21:
+                     _        __    __     _____,
+__      __      __  | |       \ \  / /    / ____|       
+\ \    /  \    / /  | |        \ \/ /    | (___
+ \ \  / /\ \  / /   | |         \ \/      \___ \
+  \ \/ /  \ \/ /    | |         /\ \          ) |
+   \__/    \__/     | |___/|   / /\ \     ____/ /
+                    |______|  /_/  \_\   |_____/                 
+                               
+20962|20963|9566
+
+2017-11-24 13:37:42:{"onConnect":["tcp\\Server","onConnect"],"onReceive":["tcp\\Server","onReceive"],"onClose":["tcp\\Server","onClose"],"onPacket":null,"onBufferFull":null,"onBufferEmpty":null,"onStart":["tcp\\Server","onStart"],"onShutdown":null,"onWorkerStart":null,"onWorkerStop":null,"onWorkerExit":null,"onWorkerError":null,"onTask":null,"onFinish":null,"onManagerStart":null,"onManagerStop":null,"onPipeMessage":null,"setting":{"worker_num":8,"daemonize":false,"max_request":10000,"dispatch_mode":2,"debug_mode":1},"connections":{},"host":"0.0.0.0","port":9566,"type":1,"mode":3,"ports":[{"onConnect":["tcp\\Server","onConnect"],"onReceive":["tcp\\Server","onReceive"],"onClose":["tcp\\Server","onClose"],"onPacket":null,"onBufferFull":null,"onBufferEmpty":null,"onRequest":null,"onHandShake":null,"onMessage":null,"onOpen":null,"host":"0.0.0.0","port":9566,"type":1,"sock":3,"setting":{"worker_num":8,"daemonize":false,"max_request":10000,"dispatch_mode":2,"debug_mode":1}}],"master_pid":21225,"manager_pid":21226,"worker_id":0,"taskworker":false,"worker_pid":0}
+2017-11-24 13:37:42:
+                     _        __    __     _____,
+__      __      __  | |       \ \  / /    / ____|       
+\ \    /  \    / /  | |        \ \/ /    | (___
+ \ \  / /\ \  / /   | |         \ \/      \___ \
+  \ \/ /  \ \/ /    | |         /\ \          ) |
+   \__/    \__/     | |___/|   / /\ \     ____/ /
+                    |______|  /_/  \_\   |_____/                 
+                               
+21225|21226|9566
+
