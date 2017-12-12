@@ -16,6 +16,26 @@ spl_autoload_register(function ($class_name) {
 
 function start()
 {
+    if(file_exists(tcp\Config::tcpServerOpt['pid_file'])){
+        $handle = fopen(tcp\Config::tcpServerOpt['pid_file'], 'r');
+        $pid  = trim(fgets($handle));
+        fclose($handle);
+        if ($pid) {
+            exec('ps p ' . $pid, $tmp);
+            $next=0;
+            if (count($tmp) > 1) {
+                fwrite(STDOUT, "This Process is runing[{$pid}],please input 1 [skip and exit] ,or 2 [kill and start again] ,default 1: ");
+                $next = trim(fgets(STDIN));
+            
+                if ($next == 2) {
+                    posix_kill($pid, 9);
+                }else{
+                    fwrite(STDOUT, 'Process is running ' . $pid . "[not restart!]\n");
+                    exit();
+                }
+            }
+        }
+    }
     $config = tcp\Config::tcpServer;
     $server = new \swoole_server($config['host'], $config['port']);
     

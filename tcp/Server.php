@@ -147,6 +147,7 @@ class Server
         echo "Server is started:[" . date("Y-m-d H:i:s") . "]\n";
         echo "host[{$server->host}],port[{$server->port}],process[{$server->setting['worker_num']}],max_request[{$server->setting['max_request']}]\n";
         echo "Pid[{$server->master_pid}] is stored in {$server->setting['pid_file']}\n";
+        fwrite(STDOUT, "Process is started\n");
     }
 
     public static function onShutdown($server)
