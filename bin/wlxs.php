@@ -26,9 +26,10 @@ function start()
             if (count($tmp) > 1) {
                 fwrite(STDOUT, "This Process is runing[{$pid}],please input 1 [skip and exit] ,or 2 [kill and start again] ,default 1: ");
                 $next = trim(fgets(STDIN));
-            
                 if ($next == 2) {
-                    posix_kill($pid, 9);
+                    stop();
+                    fwrite(STDOUT, "Process is stopping \n");
+                    sleep(5);
                 }else{
                     fwrite(STDOUT, 'Process is running ' . $pid . "[not restart!]\n");
                     exit();
@@ -65,6 +66,7 @@ function start()
         'onShutdown'
     ]);
     
+    fwrite(STDOUT, "Process is started \n");
     $server->start();
 }
 
