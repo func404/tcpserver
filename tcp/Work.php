@@ -57,6 +57,10 @@ class Work
             $server->close($fd);
             return false;
         }
+
+        if ($loginInfo['transaction_number']) { //如果流水号存在
+            Cache::getInstance()->delete('');         
+        }
         
         // 保存登录日志
         $loginId = DB::getInstance()->createLoginLog([
