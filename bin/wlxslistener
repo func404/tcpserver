@@ -116,6 +116,7 @@ function dealClient($client, $message)
  */
 function dealServer($message)
 {
+    error_log($message."\n",3,"/tmp/dx1222.log");
     echo $message . "\n";
 }
 $redis->subscribe([
