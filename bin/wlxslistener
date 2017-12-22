@@ -53,7 +53,7 @@ if (DAEMONIZE) {
             exec('ps p ' . $pid, $tmp);
             $next=0;
             if (count($tmp) > 1) {
-                fwrite(STDOUT, "This Process is runing[{pid}],please input 1 [skip and exit] ,or 2 [kill and start again] ,default 1: ");
+                fwrite(STDOUT, "This Process is runing[{$pid}],please input 1 [skip and exit] ,or 2 [kill and start again] ,default 1: ");
                 $next = trim(fgets(STDIN));
             
                 if ($next == 2) {
