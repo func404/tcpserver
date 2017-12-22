@@ -115,10 +115,12 @@ class Server
             $c = json_decode($c);
             if ($c->device_id) {
                 Cache::getInstance()->hDel(Config::caches['clients'], $c->device_id);
-                Cache::getInstance()->hDel(Config::caches['connections'], $fd);
                 echo date('Y-m-d H:i:s').':'.$c->device_id  . " is disconnected [{$fd}]\n";
             }
         }
+        Logger::getInstance()->write('Close:' . $fd, 'server');
+        Cache::getInstance()->hDel(Config::caches['connections'], $fd);
+        
     }
 
     public static function onStart($server)

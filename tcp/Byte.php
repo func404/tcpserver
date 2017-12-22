@@ -52,6 +52,10 @@ class Byte
 
     public $headers = [];
 
+    public $requestData = '';
+
+    public $responseData = '';
+
     private static $instance;
 
     public static function getInstance()
@@ -150,9 +154,10 @@ class Byte
         $length = strlen($string);
         $decArr = unpack('C' . $length, $string);
         
+        $this->requestData = implode(',', $decArr);
+        
         $return['header'] = $this->header = hexdec(dechex($decArr[1]) . dechex($decArr[2]));
         
-        // $return['length'] = $this->length = $this->bigInt2bytes(array_slice($decArr, 2, 2));
         $return['length'] = $this->length = hexdec(dechex($decArr[3]) . dechex($decArr[4]));
         
         $return['command'] = $this->command = $decArr[5];
@@ -182,7 +187,6 @@ class Byte
         }
         
         $this->headers = $return;
-        
         return $this;
     }
 
@@ -219,6 +223,8 @@ class Byte
         foreach ($checksum as $ck) {
             $str .= chr($ck);
         }
+        
+        $this->responseData =  implode(',', $arr);
         
         return pack('a' . strlen($str), $str);
     }
@@ -460,8 +466,8 @@ class Byte
     public function setTransactionTags($more = [], $less = [], $is_last = 1)
     {
         $tagsStr = $lessStr = $moreStr = '';
-        ! empty($more) ? $moreStr = '+'.implode(',+', $more) : '';
-        ! empty($less) ? $lessStr = '-'. implode(',-', $less) : '';
+        ! empty($more) ? $moreStr = '+' . implode(',+', $more) : '';
+        ! empty($less) ? $lessStr = '-' . implode(',-', $less) : '';
         
         if (! empty($more) || ! empty($less)) {
             $tagsStr = implode(',', [
@@ -469,8 +475,8 @@ class Byte
                 $lessStr
             ]);
         }
-        $tagsStr =  rtrim(ltrim($tagsStr,','),',');
-
+        $tagsStr = rtrim(ltrim($tagsStr, ','), ',');
+        
         $this->load = array_merge($this->bigInt2bytes(strlen($tagsStr), 2), $this->str2bytes($tagsStr), $this->bigInt2bytes($is_last, 1));
         
         return $this->setCommand(0x05);
@@ -916,5 +922,23 @@ class Byte
         $decArr = unpack('C' . $length, $data);
         
         return ($decArr[9] == 0);
+    }
+
+    /**
+     * 请求的原始数据
+     * @return string
+     */
+    public function getRequestData()
+    {
+        return $this->requestData;
+    }
+
+    /**
+     * 返回的原始数据
+     * @return string
+     */
+    public function getResponseData()
+    {
+        return $this->responseData;
     }
 }
