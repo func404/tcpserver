@@ -1,38 +1,34 @@
 <?php
-namespace tcp;
-
-use lib\RestClient;
+namespace lib;
 
 class Api
 {
 
-    private static $router = [];
+    private static $base_url = 'http://apis.weilaixiansen.com/rest';
 
-    private static $config = [
-        'base_url' => 'http://api.weilaixiansen.com/rest/',
-        'public_key' => '',
-        'private_key' => '',
-        'access_token' => ''
-    
-    ];
+    private static $token = 'ktusH3d7K5j7Z0hzhL9s7tfz3OIipwCmJMW0tjAZCT4RRrkUeZhfkDFFLW3IrAcphJTPFlod2gWiGVMi24mRqsmyq77eMaLDibbrIzWegldbryHxU5PGpHdQa2fAsTvf4uXviTOPtenNsKcqS+1gTgqUdt+d+YsWO0uPv6MOseU=';
 
     private static $instance;
 
     private static $rest;
 
-    public function __construct($config = [], $router = [])
+    public function __construct(string $base_url = '', string $token = '')
     {
         if (! self::$instance) {
-            self::$router = array_merge(self::$router, $router);
-            self::$config = array_merge(self::$config, Config::rest, $config);
-            self::$rest = RestClient::getInstance(self::$config);
+            self::$rest = RestfulClient::getInstance()->setRequestType('fsocket');
+            if ($base_url) {
+                self::$base_url = $base_url;
+            }
+            if ($token) {
+                self::$token = $token;
+            }
         }
     }
 
-    public static function getInstance($config = [], $router = [])
+    public static function getInstance(string $base_url = '', string $token = '')
     {
         if (! (self::$instance instanceof self)) {
-            self::$instance = new self($config, $router);
+            self::$instance = new self($base_url, $token);
         }
         return self::$instance;
     }
@@ -50,7 +46,10 @@ class Api
      */
     public function getUserById($user_id)
     {
-        ;
+        return self::$rest->post([
+            'token' => self::$token,
+            'user_id' => $user_id
+        ], self::$base_url . '/user/detail')->getResponseBody();
     }
 
     /**
@@ -60,7 +59,10 @@ class Api
      */
     public function getUserBaseById($user_id)
     {
-        ;
+        return self::$rest->post([
+            'token' => self::$token,
+            'user_id' => $user_id
+        ], self::$base_url . '/user/base')->getResponseBody();
     }
 
     /**
@@ -73,7 +75,11 @@ class Api
      */
     public function getUserByThirdId($type, $third_id)
     {
-        ;
+        return self::$rest->post([
+            'token' => self::$token,
+            'type' => $type,
+            'third_id' => $third_id
+        ], self::$base_url . '/user/detail/third')->getResponseBody();
     }
 
     /**
@@ -83,33 +89,43 @@ class Api
      */
     public function getUserByPhone($phone)
     {
-        ;
+        return self::$rest->post([
+            'token' => self::$token,
+            'phone' => $phone
+        ], self::$base_url . '/user/detail/phone')->getResponseBody();
     }
 
     /**
      * 根据用户第三方类型和手机返回与类型匹配用户信息
      *
-     * @param unknown $third_type            
-     * @param unknown $phone            
+     * @param int $third_type            
+     * @param string $phone            
      */
     public function getUserThirdInfoByPhone($third_type, $phone)
     {
-        ;
+        return self::$rest->post([
+            'token' => self::$token,
+            'phone' => $phone,
+            'type' => $third_type
+        ], self::$base_url . '/user/third/phone')->getResponseBody();
     }
 
     public function addUser($userInfo = [])
     {
-        ;
+        $post = array_merge($userInfo, [
+            'token' => self::$token
+        ]);
+        return self::$rest->post($post, self::$base_url . '/user/add')->getResponseBody();
     }
 
-    public function addThirdUser($type, $third_id)
+    public function addThirdUser($type, $third_id, $phone = '')
     {
-        ;
-    }
-
-    public function addThirdUserByPhone($type, $third_id, $phone)
-    {
-        ;
+        return self::$rest->post([
+            'token' => self::$token,
+            'phone' => $phone,
+            'type' => $third_type,
+            'third_id' => $third_id
+        ], self::$base_url . '/user/add/third')->getResponseBody();
     }
 
     public function changePassword()
@@ -127,9 +143,22 @@ class Api
         ;
     }
 
-    public function createOpenDoorOrder($device_id, $user_id)
+    public function createOpenDoorOrder($device_id, $user_id, $pay_channel_id = 0)
     {
-        ;
+        return self::$rest->post([
+            'token' => self::$token,
+            'device_id' => $device_id,
+            'user_id' => $user_id,
+            'pay_channel_id' => $pay_channel_id
+        ], self::$base_url . '/order/createandopendoor')->getResponseBody();
+    }
+
+    public function closeDoorAndPay($order_id)
+    {
+        return self::$rest->post([
+            'token' => self::$token,
+            'order_id' => $order_id
+        ], self::$base_url . '/order/closedoorandpay')->getResponseBody();
     }
 
     public function createBookOrder($device_id, $user_id)
@@ -139,12 +168,21 @@ class Api
 
     public function getOrderList($user_id = 0, $device_id = 0, $status = 0, $date_from = 0, $date_to = '', $limit = 0, $offset = 0)
     {
-        ;
+        return self::$rest->post([
+            'token' => self::$token,
+            'order_id' => $order_id,
+            'device_id' => $device_id,
+            'status' => $status,
+            'date_from' => $date_from,
+            'date_to' => $date_to
+        ], self::$base_url . '/order/list/user')->getResponseBody();
     }
 
     public function getOrderDetail($order_id)
     {
-        ;
+        return self::$rest->post([
+            'order_id' => $order_id
+        ], self::$base_url . '/order/detail')->getResponseBody();
     }
 
     public function getBookOrderList($user_id = 0, $device_id = 0, $status = 0, $date_from = 0, $date_to = '', $limit = 0, $offset = 0)
@@ -178,6 +216,22 @@ class Api
         ];
     }
 
+    public function getDeviceInfoByDeviceId($device_id)
+    {
+        return self::$rest->post([
+            'token' => self::$token,
+            'device_id' => $device_id
+        ], self::$base_url . '/device/detail')->getResponseBody();
+    }
+
+    public function getDeviceInfoByDeviceNo($device_number)
+    {
+        return self::$rest->post([
+            'token' => self::$token,
+            'device_number' => $device_number
+        ], self::$base_url . '/device/detail/deviceno')->getResponseBody();
+    }
+
     public function getDeviceStatusByDeviceId($device_id)
     {
         ;
@@ -187,17 +241,19 @@ class Api
     {
         ;
     }
-    
-    public function destoryDeviceByDeviceId($device_id){
+
+    public function destoryDeviceByDeviceId($device_id)
+    {
         ;
     }
-    
-    
-    public function destoryDeviceByDeviceNumber($device_id){
+
+    public function destoryDeviceByDeviceNumber($device_id)
+    {
         ;
     }
-    
-    public function pauseDeviceByDeviceId($device_id){
+
+    public function pauseDeviceByDeviceId($device_id)
+    {
         ;
     }
 

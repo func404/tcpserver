@@ -88,6 +88,11 @@ class Work
             'sn' => ++ $headers['sn']
         ]);
         
+        if ($loginInfo['status'] % 0000011) {
+            $clientCurrent['current_data'] = 'shopping';
+            $clientCurrent['current_transaction'] = $data['transaction_number'];
+        }
+        
         Cache::getInstance()->hSet(Config::caches['clients'], $device['device_id'], $clientCurrent);
         
         /*
@@ -230,13 +235,13 @@ class Work
                     'transaction_number' => $transactionNumber
                 ]
             ]));
-            //更新client
-            $device->current_transaction='waiting';
-            $device->current_data='';
-            $device->last_time=time();
-            $device->status=0;
-            $device->sn++;
-            Cache::getInstance()->hSet(Config::caches['clients'], $c->device_id,json_encode($device));
+            // 更新client
+            $device->current_transaction = 'waiting';
+            $device->current_data = '';
+            $device->last_time = time();
+            $device->status = 0;
+            $device->sn ++;
+            Cache::getInstance()->hSet(Config::caches['clients'], $c->device_id, json_encode($device));
         } else {
             // 缓存标签变化数量
             Cache::getInstance()->hSet(Config::caches['tags_count'], $c->device_id . '_' . $transactionNumber, $closeInfo['different_count']);
@@ -324,13 +329,13 @@ class Work
                     ->pack());
             }
             
-            //更新client
-            $device->current_transaction='waiting';
-            $device->current_data='';
-            $device->last_time=time();
-            $device->status=0;
-            $device->sn++;
-            Cache::getInstance()->hSet(Config::caches['clients'], $c->device_id,json_encode($device));
+            // 更新client
+            $device->current_transaction = 'waiting';
+            $device->current_data = '';
+            $device->last_time = time();
+            $device->status = 0;
+            $device->sn ++;
+            Cache::getInstance()->hSet(Config::caches['clients'], $c->device_id, json_encode($device));
         }
         // 响应客户端
         $server->send($fd, Byte::getInstance()->setSn($headers['sn'] ++)
