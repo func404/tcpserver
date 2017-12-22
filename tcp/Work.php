@@ -13,6 +13,8 @@ class Work
     {
         $bytes = Byte::getInstance();
         $loginInfo = $bytes->unpack($data)->getLogin();
+        // 记录请求日志
+        Logger::getInstance()->write($client['remote_ip'] . '|' . $headers['command'] . '|' . $bytes->getRequestData(), 'monitor');
         $validate = true;
         foreach ($loginInfo as $v) {
             if (empty($v) && $v != 0) {
@@ -26,7 +28,6 @@ class Work
                 ->pack();
             Logger::getInstance()->write('InvalidParameter:' . Error::invalidParameter, 'error');
             Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'], 'error');
-            $server->send($fd, $data);
             $server->close($fd);
             Cache::getInstance()->publish(Config::broadcastChannels['device'], 'InvalidParameter:' . json_encode($loginInfo));
             return false;
@@ -124,10 +125,11 @@ class Work
         ], $server);
         
         // 响应客户端
-        $server->send($fd, Byte::getInstance()->setSn($headers['sn'])
+        $isSend = $server->send($fd, Byte::getInstance()->setSn($headers['sn'])
             ->setCommand(0x01)
-            ->response()
+            ->response(0)
             ->pack());
+        Logger::getInstance()->write($client['remote_ip'] . '|' . $headers['command'] . '|' . $bytes->getResponseData() . '|' . intval($isSend), 'response');
     }
 
     /**
@@ -146,12 +148,14 @@ class Work
                 'sn' => $headers['sn'] ++
             ])));
             
-            // 响应客户端
-            $server->send($fd, Byte::getInstance()->setSn($headers['sn'])
+            $bytes = Byte::getInstance();
+            $responseData = $bytes->setSn($headers['sn'])
                 ->setCommand(0x02)
-                ->response()
-                ->pack());
-            Logger::getInstance()->write(implode(':', $client), 'heartbeat');
+                ->response();
+            // 响应客户端
+            $isSend = $server->send($fd, $responseData->pack());
+            Logger::getInstance()->write($client['remote_ip'] . '|' . $headers['command'] . '|' . $bytes->getResponseData() . '|' . intval($isSend), 'response');
+            Logger::getInstance()->write(implode('|', $client), 'heartbeat');
             Cache::getInstance()->publish(Config::broadcastChannels['device'], 'HeatBeat:' . json_encode($client));
         } else {
             $server->send($fd, Byte::getInstance()->setSn($headers['sn'])
@@ -198,7 +202,10 @@ class Work
      */
     public function closedoor($server, $fd, $from_id, $data, $headers, $client)
     {
-        $closeInfo = Byte::getInstance()->unpack($data)->getClosedoor();
+        $bytes = Byte::getInstance()->unpack($data);
+        $closeInfo = $bytes->getClosedoor();
+        // 记录请求日志
+        Logger::getInstance()->write($client['remote_ip'] . '|' . $headers['command'] . '|' . $bytes->getRequestData(), 'monitor');
         
         $connection = Cache::getInstance()->hGet(Config::caches['connections'], $fd);
         $c = json_decode($connection);
@@ -214,13 +221,13 @@ class Work
         $device = json_decode($device);
         $transactionNumber = $device->current_data;
         
-        // 当前设备交易号 和 系统缓存的订单号不一致
-        if ($transactionNumber != $closeInfo['transaction_number']) {
-            return $server->send($fd, Byte::getInstance()->setSn($headers['sn'] ++)
-                ->setCommand(0x04)
-                ->response(Error::invalidParameter)
-                ->pack());
-        }
+        // 当前设备交易号 和 系统缓存的订单号不一致 取消判断
+        // if ($transactionNumber != $closeInfo['transaction_number']) {
+        // return $server->send($fd, Byte::getInstance()->setSn($headers['sn'] ++)
+        // ->setCommand(0x04)
+        // ->response(Error::invalidParameter)
+        // ->pack());
+        // }
         if ($closeInfo['different_count'] == 0) {
             $order = DB::getInstance()->update('wl_device_door_logs', [
                 'status' => 1,
@@ -248,10 +255,12 @@ class Work
         }
         
         // 响应客户端
-        return $server->send($fd, Byte::getInstance()->setSn($headers['sn'] ++)
+        $isSend = $server->send($fd, Byte::getInstance()->setSn($headers['sn'] ++)
             ->setCommand(0x04)
             ->response()
             ->pack());
+        Logger::getInstance()->write($client['remote_ip'] . '|' . $headers['command'] . '|' . $bytes->getResponseData() . '|' . intval($isSend), 'response');
+        return $isSend;
         // Api::getInstance()->pay($closeInfo['close_id']);
     }
 
@@ -277,7 +286,10 @@ class Work
         $transactionNumber = $device->current_data;
         
         $moreValues = $lessValues = [];
-        $closeInfo = Byte::getInstance()->unpack($data)->getTransactionTags();
+        $bytes = Byte::getInstance()->unpack($data);
+        $closeInfo = $bytes->getTransactionTags();
+        // 记录请求日志
+        Logger::getInstance()->write($client['remote_ip'] . '|' . $headers['command'] . '|' . $bytes->getRequestData(), 'monitor');
         
         if (! empty($closeInfo['more'])) {
             foreach ($closeInfo['more'] as $moreTag) {
@@ -296,7 +308,6 @@ class Work
         $allValues = array_merge($moreValues, $lessValues);
         
         if (! empty($allValues)) {
-            
             $inserts .= implode(',', $allValues);
             DB::getInstance()->query($inserts);
             DB::getInstance()->getInsertId();
@@ -328,6 +339,7 @@ class Work
                     ->response(Error::tagsNumberUnmatch)
                     ->pack());
             }
+            Cache::getInstance()->hDel(Config::caches['tags_count'], $c->device_id . '_' . $transactionNumber);
             
             // 更新client
             $device->current_transaction = 'waiting';
@@ -338,10 +350,11 @@ class Work
             Cache::getInstance()->hSet(Config::caches['clients'], $c->device_id, json_encode($device));
         }
         // 响应客户端
-        $server->send($fd, Byte::getInstance()->setSn($headers['sn'] ++)
+        $isSend = $server->send($fd, Byte::getInstance()->setSn($headers['sn'] ++)
             ->setCommand(0x05)
             ->response()
             ->pack());
+        Logger::getInstance()->write($client['remote_ip'] . '|' . $headers['command'] . '|' . $bytes->getResponseData() . '|' . intval($isSend), 'response');
     }
 
     /**
@@ -351,8 +364,11 @@ class Work
      */
     public function deviceStatus($server, $fd, $from_id, $data, $headers, $client)
     {
-        $bytes = Byte::getInstance();
-        $status = $bytes->unpack($data)->getDeviceStatus();
+        $bytes = Byte::getInstance()->unpack($data);
+        $status = $bytes->getDeviceStatus();
+        // 记录请求日志
+        Logger::getInstance()->write($client['remote_ip'] . '|' . $headers['command'] . '|' . $bytes->getRequestData(), 'monitor');
+        
         $connection = Cache::getInstance()->hGet(Config::caches['connections'], $fd);
         $c = json_decode($connection);
         if (! $c->device_id) {
@@ -366,10 +382,11 @@ class Work
         $device->status = $status;
         $device->sn ++;
         Cache::getInstance()->hSet(Config::caches['clients'], $c->device_id, json_encode($device));
-        return $server->send($fd, Byte::getInstance()->setSn($headers['sn'])
+        $isSend = $server->send($fd, Byte::getInstance()->setSn($headers['sn'])
             ->setCommand(0x06)
             ->response(0)
             ->pack());
+        Logger::getInstance()->write($client['remote_ip'] . '|' . $headers['command'] . '|' . $bytes->getResponseData() . '|' . intval($isSend), 'response');
     }
 
     /**
@@ -422,6 +439,8 @@ class Work
     {
         $bytes = Byte::getInstance();
         $tagsData = $bytes->unpack($data)->getLoginTags();
+        // 记录请求日志
+        Logger::getInstance()->write($client['remote_ip'] . '|' . $headers['command'] . '|' . $bytes->getRequestData(), 'monitor');
         $connection = Cache::getInstance()->hGet(Config::caches['connections'], $fd);
         $c = json_decode($connection);
         if (! $c->device_id) {
@@ -484,7 +503,8 @@ class Work
         $data = Byte::getInstance()->setSn($headers['sn'] ++)
             ->response(0)
             ->pack();
-        $server->send($fd, $data);
+        $isSend = $server->send($fd, $data);
+        Logger::getInstance()->write($client['remote_ip'] . '|' . $headers['command'] . '|' . $bytes->getResponseData() . '|' . intval($isSend), 'response');
     }
 
     /**
