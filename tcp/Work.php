@@ -23,39 +23,44 @@ class Work
             }
         }
         if (! $validate) {
-            $data = Byte::getInstance()->setSn($headers['sn'] ++)
+            $responseData = Byte::getInstance()->setSn($headers['sn'] ++)
                 ->response(Error::invalidParameter)
                 ->pack();
-            Logger::getInstance()->write('InvalidParameter:' . Error::invalidParameter, 'error');
-            Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'], 'error');
-            $server->close($fd);
+            
+            // RESPONSE invalidParameter
+            $responseRst = $server->send($fd, $responseData);
+            $closeRst = $server->close($fd);
             Cache::getInstance()->publish(Config::broadcastChannels['device'], 'InvalidParameter:' . json_encode($loginInfo));
             return false;
         }
         $device = DB::getInstance()->getDeviceByNo($loginInfo['device_number']);
         
         if (empty($device)) {
-            $data = Byte::getInstance()->setSn($headers['sn'] ++)
+            $responseData = Byte::getInstance()->setSn($headers['sn'] ++)
                 ->response(Error::deviceUnlogined)
                 ->pack();
             Logger::getInstance()->write('DeviceUnlogined:' . Error::deviceUnlogined, 'error');
             Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'], 'error');
             Cache::getInstance()->publish(Config::broadcastChannels['device'], 'DeviceUnlogined:' . json_encode($loginInfo));
-            $server->send($fd, $data);
-            $server->close($fd);
+            
+            // RESPONSE deviceUnlogined
+            $responseRst = $server->send($fd, $responseData);
+            $closeRst = $server->close($fd);
             return false;
         }
         
         if ($loginInfo['device_key'] != $device['device_key']) {
-            $data = Byte::getInstance()->setSn($headers['sn'] ++)
+            $responseData = Byte::getInstance()->setSn($headers['sn'] ++)
                 ->setCommand(0x01)
                 ->response(Error::deviceKeyError)
                 ->pack();
             Logger::getInstance()->write('DeviceKeyError:' . Error::deviceKeyError, 'error');
-            Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'], 'error');
+            Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'] . ':' . $client['remote_port'], 'error');
             Cache::getInstance()->publish(Config::broadcastChannels['device'], 'DeviceKeyError:' . json_encode($loginInfo));
-            $server->send($fd, $data);
-            $server->close($fd);
+            
+            // RESPONSE deviceKeyError
+            $responseRst = $server->send($fd, $responseData);
+            $closeRst = $server->close($fd);
             return false;
         }
         
@@ -101,14 +106,16 @@ class Work
          */
         $connection = Cache::getInstance()->hGet(Config::caches['connections'], $fd);
         if (empty($connection)) {
-            $data = Byte::getInstance()->setSn($headers['sn'] ++)
+            $responseData = Byte::getInstance()->setSn($headers['sn'] ++)
                 ->setCommand(0x01)
                 ->response(Error::serverError)
                 ->pack();
             Logger::getInstance()->write('serverError:' . Error::serverError . '  ' . __FILE__ . ' : ' . __LINE__, 'fatal');
             Cache::getInstance()->publish(Config::broadcastChannels['device'], 'serverError:' . json_encode($loginInfo));
-            $server->send($fd, $data);
-            $server->close($fd);
+            
+            // RESPONSE serverError
+            $responseRst = $server->send($fd, $responseData);
+            $closeRst = $server->close($fd);
             return false;
         }
         Cache::getInstance()->hSet(Config::caches['connections'], $fd, json_encode(array_merge(json_decode($connection, true), [
@@ -130,6 +137,7 @@ class Work
             ->response(0)
             ->pack());
         Logger::getInstance()->write($client['remote_ip'] . '|' . $headers['command'] . '|' . $bytes->getResponseData() . '|' . intval($isSend), 'response');
+        return $isSend;
     }
 
     /**
@@ -151,20 +159,29 @@ class Work
             $bytes = Byte::getInstance();
             $responseData = $bytes->setSn($headers['sn'])
                 ->setCommand(0x02)
-                ->response();
-            // 响应客户端
-            $isSend = $server->send($fd, $responseData->pack());
-            Logger::getInstance()->write($client['remote_ip'] . '|' . $headers['command'] . '|' . $bytes->getResponseData() . '|' . intval($isSend), 'response');
+                ->response()
+                ->pack();
+            
+            // RESPONSE HEATBEAT
+            $responseRst = $server->send($fd, $responseData);
+            
+            Logger::getInstance()->write($client['remote_ip'] . '|' . $headers['command'] . '|' . $bytes->getResponseData() . '|' . intval($responseRst), 'response');
             Logger::getInstance()->write(implode('|', $client), 'heartbeat');
             Cache::getInstance()->publish(Config::broadcastChannels['device'], 'HeatBeat:' . json_encode($client));
         } else {
-            $server->send($fd, Byte::getInstance()->setSn($headers['sn'])
-                ->response(Error::heartBeatTimeout)
-                ->pack());
+            
+            $responseData = $bytes->setSn($headers['sn'])
+                ->setCommand(0x02)
+                ->response()
+                ->pack();
+            
+            // RESPONSE HEATBEAT
+            $responseRst = $server->send($fd, $responseData);
+            $closeRst = $server->close($fd);
+            
             Logger::getInstance()->write('HeartBeatTimeout:' . Error::heartBeatTimeout, 'error');
             Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'], 'error');
             Cache::getInstance()->publish(Config::broadcastChannels['device'], 'HeartBeatTimeout:' . json_encode($client));
-            $server->close($fd);
         }
     }
 
@@ -176,19 +193,17 @@ class Work
      * @param string $transactionsId            
      * @return boolean
      */
-    public function opendoor($server, $device, $transactionsId)
+    public function openDoor($server, $device, $transactionsId)
     {
         $connection = Cache::getInstance()->hGet(Config::caches['connections'], $device->fd);
         $c = json_decode($connection);
         if (! $c->device_id) {
             return false;
         }
-        
         $data = Byte::getInstance()->setSn($device->sn ++)
             ->setOpendoor($transactionsId)
             ->pack();
-        
-        $server->send($device->fd, $data);
+        $rst = $server->send($device->fd, $data);
         return true;
         // need log;
     }
@@ -200,7 +215,7 @@ class Work
      *
      * @param unknown $data            
      */
-    public function closedoor($server, $fd, $from_id, $data, $headers, $client)
+    public function closeDoor($server, $fd, $from_id, $data, $headers, $client)
     {
         $bytes = Byte::getInstance()->unpack($data);
         $closeInfo = $bytes->getClosedoor();
@@ -420,15 +435,6 @@ class Work
     }
 
     /**
-     * 发送盘存命令
-     * 0x0b
-     */
-    public function needAllTags()
-    {
-        ;
-    }
-
-    /**
      * 开机上传所有标签
      * i2
      * 0x07
@@ -508,21 +514,203 @@ class Work
     }
 
     /**
-     * 接收盘存汇总
-     * 0x0c
+     * 发送盘存命令
+     * 0x0b
      */
-    public function allTagsCount($server, $fd, $from_id, $data, $headers, $client)
+    public function inventory($server, $device, $transactionsId)
     {
-        ;
+        $connection = Cache::getInstance()->hGet(Config::caches['connections'], $device->fd);
+        $c = json_decode($connection);
+        if (! $c->device_id) {
+            return false;
+        }
+        $data = Byte::getInstance()->setSn($device->sn ++)
+            ->setInventory($transactionsId)
+            ->pack();
+        $rst = $server->send($device->fd, $data);
+        return $rst;
+        // need log;
     }
 
     /**
-     * 上传盘存数据
+     * 接收盘存汇总
      * 0x0c
      */
-    public function allTags()
+    public function inventorySummary($server, $fd, $from_id, $data, $headers, $client)
     {
-        ;
+        $bytes = Byte::getInstance()->unpack($data);
+        $inventoryInfo = $bytes->getInventorySummary();
+        $connection = Cache::getInstance()->hGet(Config::caches['connections'], $fd);
+        $connection = json_decode($connection);
+        
+        if (! $connection->device_id) {
+            $responseData = Byte::getInstance()->setSn($headers['sn'] ++)
+                ->setCommand(0x0c)
+                ->response(Error::hasNotBeReady)
+                ->pack();
+            $responseRst = $server->send($fd, $responseData);
+            return $responseRst;
+        }
+        
+        $device = Cache::getInstance()->hGet(Config::caches['clients'], $connection->device_id);
+        $device = json_decode($device);
+        $transactionNumber = $device->current_data;
+        
+        DB::getInstance()->update('wl_device_inventory_logs', [
+            'finish_time' => date("Y-m-d H:i:s"),
+            'tags' => $inventoryInfo['count'],
+            'weight' => $inventoryInfo['weight']
+        ], [
+            'inventory_id' => $transactionNumber
+        ]);
+        
+        if ($inventoryInfo['count'] == 0) {
+            // 发送结束标记
+            Cache::getInstance()->publish(Config::broadcastChannels['server'], json_encode([
+                'command' => 'Inventory',
+                'data' => [
+                    'transaction_number' => $transactionNumber
+                ]
+            ]));
+            // 更新client
+            $device->current_transaction = 'waiting';
+            $device->current_data = '';
+            $device->last_time = time();
+            $device->status = 0;
+            $device->sn ++;
+            Cache::getInstance()->hSet(Config::caches['clients'], $connection->device_id, json_encode($device));
+        } else {
+            $device->last_time = time();
+            Cache::getInstance()->hSet(Config::caches['clients'], $connection->device_id, json_encode($device));
+            // 缓存标签变化数量
+            Cache::getInstance()->hSet(Config::caches['inventory_count'], $connection->device_id . '_' . $transactionNumber, $inventoryInfo['count']);
+        }
+        
+        // 响应客户端
+        $responseData = $server->send($fd, Byte::getInstance()->setSn($headers['sn'] ++)
+            ->setCommand(0x0c)
+            ->response()
+            ->pack());
+        $responseRst = $server->send($fd, $responseData);
+        return $responseRst;
+    }
+
+    /**
+     * 接收盘存标签
+     * 0x0d
+     */
+    public function inventoryTags($server, $fd, $from_id, $data, $headers, $client)
+    {
+        $bytes = Byte::getInstance()->unpack($data);
+        $connection = Cache::getInstance()->hGet(Config::caches['connections'], $fd);
+        $connection = json_decode($connection);
+        
+        if (! $connection->device_id) {
+            $responseData = Byte::getInstance()->setSn($headers['sn'] ++)
+                ->setCommand(0x0d)
+                ->response(Error::hasNotBeReady)
+                ->pack();
+            $responseRst = $server->send($fd, $responseData);
+            return $responseRst;
+        }
+        
+        $inventoryTags = $bytes->getInventoryTags();
+        
+        $device = Cache::getInstance()->hGet(Config::caches['clients'], $connection->device_id);
+        $device = json_decode($device);
+        $transactionNumber = $device->current_data;
+        
+        $total = Cache::getInstance()->hSet(Config::caches['inventory_count'], $connection->device_id . '_' . $transactionNumber);
+        
+        if ($inventoryTags['is_last'] != 0) {
+            $tags = Cache::getInstance()->hGet(Config::caches['inventory_tags'], $connection->device_id . '_' . $transactionNumber);
+            if ($tags) {
+                $tags = json_decode($tags, true);
+            }
+            $newTags = [
+                'more' => array_merge($inventoryTags['more'], $tags['more']),
+                'less' => array_merge($inventoryTags['less'], $tags['less']),
+                'last' => array_merge($inventoryTags['last'], $tags['last'])
+            ];
+            Cache::getInstance()->hSet(Config::caches['inventory_tags'], $connection->device_id . '_' . $transactionNumber, json_encode($newTags));
+            
+            // 更新client
+            $device->last_time = time();
+            $device->sn ++;
+            Cache::getInstance()->hSet(Config::caches['clients'], $connection->device_id, json_encode($device));
+        } else {
+            $tags = Cache::getInstance()->hGet(Config::caches['inventory_tags'], $connection->device_id . '_' . $transactionNumber);
+            if ($tags) {
+                $tags = json_decode($tags, true);
+                $inventoryTags = [
+                    'more' => array_merge($inventoryTags['more'], $tags['more']),
+                    'less' => array_merge($inventoryTags['less'], $tags['less']),
+                    'last' => array_merge($inventoryTags['last'], $tags['last'])
+                ];
+            }
+            
+            // 更新汇总表
+            DB::getInstance()->update('wl_device_inventory_logs', [
+                'more' => count($inventoryTags['more']),
+                'less' => count($inventoryTags['less']),
+                'last' => count($inventoryTags['last'])
+            ], [
+                'inventory_id' => $transactionNumber
+            ]);
+            
+            // 插入标签
+            $inserts = "insert into  `wl_device_inventory_tags` (`device_id`,`tag`,`inventory_id`,`status`) values ";
+            
+            $values = '';
+            
+            if (! empty($inventoryTags['last'])) {
+                foreach ($inventoryTags['last'] as $tag) {
+                    $values .= '(' . $connection->device_id . ',\'' . $tag . '\',\'' . $transactionNumber . '\',1),';
+                }
+                unset($tag);
+            }
+            if (! empty($inventoryTags['more'])) {
+                foreach ($inventoryTags['more'] as $tag) {
+                    $values .= '(' . $connection->device_id . ',\'' . $tag . '\',\'' . $transactionNumber . '\',2),';
+                }
+                unset($tag);
+            }
+            if (! empty($inventoryTags['less'])) {
+                foreach ($inventoryTags['less'] as $tag) {
+                    $values .= '(' . $connection->device_id . ',\'' . $tag . '\',\'' . $transactionNumber . '\',3),';
+                }
+                unset($tag);
+            }
+            $sql = $inserts . rtrim($values, ',');
+            DB::getInstance()->query($sql);
+            
+            // 更新client
+            $device->current_transaction = 'waiting';
+            $device->current_data = '';
+            $device->last_time = time();
+            $device->status = 0;
+            $device->sn ++;
+            Cache::getInstance()->hSet(Config::caches['clients'], $connection->device_id, json_encode($device));
+        }
+        
+        // 删除缓存
+        Cache::getInstance()->hDel(Config::caches['inventory_tags'], $connection->device_id . '_' . $transactionNumber);
+        Cache::getInstance()->hDel(Config::caches['inventory_count'], $connection->device_id . '_' . $transactionNumber);
+        
+        // 发送结束标记
+        Cache::getInstance()->publish(Config::broadcastChannels['server'], json_encode([
+            'command' => 'Inventory',
+            'data' => [
+                'transaction_number' => $transactionNumber
+            ]
+        ]));
+        // 响应客户端
+        $responseData = $server->send($fd, Byte::getInstance()->setSn($headers['sn'] ++)
+            ->setCommand(0x0d)
+            ->response()
+            ->pack());
+        $responseRst = $server->send($fd, $responseData);
+        return $responseRst;
     }
 
     // /以下为服务器广播监听请求API请求
@@ -675,5 +863,220 @@ class Work
             ]);
             return true;
         }
+    }
+
+    /**
+     * 开门
+     *
+     * @param Sock $server            
+     * @param \stdClass $device            
+     * @param string $transactionsId            
+     * @return boolean
+     */
+    public function refresh($server, $device, $transactionsId)
+    {
+        $connection = Cache::getInstance()->hGet(Config::caches['connections'], $device->fd);
+        $c = json_decode($connection);
+        if (! $c->device_id) {
+            return false;
+        }
+        $data = Byte::getInstance()->setSn($device->sn ++)
+            ->setRefresh($transactionsId)
+            ->pack();
+        $rst = $server->send($device->fd, $data);
+        return $rst;
+        // need log;
+    }
+
+    public function refreshSummary($server, $fd, $from_id, $data, $headers, $client)
+    {
+        $bytes = Byte::getInstance()->unpack($data);
+        $refreshInfo = $bytes->getRefreshSummary();
+        $connection = Cache::getInstance()->hGet(Config::caches['connections'], $fd);
+        $connection = json_decode($connection);
+        
+        if (! $connection->device_id) {
+            $responseData = Byte::getInstance()->setSn($headers['sn'] ++)
+            ->setCommand(0x0f)
+            ->response(Error::hasNotBeReady)
+            ->pack();
+            $responseRst = $server->send($fd, $responseData);
+            return $responseRst;
+        }
+        
+        $device = Cache::getInstance()->hGet(Config::caches['clients'], $connection->device_id);
+        $device = json_decode($device);
+        $transactionNumber = $device->current_data;
+        
+        DB::getInstance()->update('wl_device_refresh_logs', [
+            'finish_time' => date("Y-m-d H:i:s"),
+            'tags' => $refreshInfo['count'],
+            'weight' => $refreshInfo['weight']
+        ], [
+            'refresh_id' => $transactionNumber
+        ]);
+        
+        if ($refreshInfo['count'] == 0) {
+            // 发送结束标记
+            Cache::getInstance()->publish(Config::broadcastChannels['server'], json_encode([
+                'command' => 'Refresh',
+                'data' => [
+                    'transaction_number' => $transactionNumber
+                ]
+            ]));
+            // 更新client
+            $device->current_transaction = 'waiting';
+            $device->current_data = '';
+            $device->last_time = time();
+            $device->status = 0;
+            $device->sn ++;
+            Cache::getInstance()->hSet(Config::caches['clients'], $connection->device_id, json_encode($device));
+        } else {
+            $device->last_time = time();
+            Cache::getInstance()->hSet(Config::caches['clients'], $connection->device_id, json_encode($device));
+            // 缓存标签变化数量
+            Cache::getInstance()->hSet(Config::caches['refresh_count'], $connection->device_id . '_' . $transactionNumber, $refreshInfo['count']);
+        }
+        
+        // 响应客户端
+        $responseData = $server->send($fd, Byte::getInstance()->setSn($headers['sn'] ++)
+            ->setCommand(0x0f)
+            ->response()
+            ->pack());
+        $responseRst = $server->send($fd, $responseData);
+        return $responseRst;
+    }
+    
+    /**
+     * 接收盘存标签
+     * 0x0d
+     */
+    public function refreshTags($server, $fd, $from_id, $data, $headers, $client)
+    {
+        $bytes = Byte::getInstance()->unpack($data);
+        $connection = Cache::getInstance()->hGet(Config::caches['connections'], $fd);
+        $connection = json_decode($connection);
+        
+        if (! $connection->device_id) {
+            $responseData = Byte::getInstance()->setSn($headers['sn'] ++)
+            ->setCommand(0x0d)
+            ->response(Error::hasNotBeReady)
+            ->pack();
+            $responseRst = $server->send($fd, $responseData);
+            return $responseRst;
+        }
+        
+        $refreshTags = $bytes->getRefreshTags();
+        
+        $device = Cache::getInstance()->hGet(Config::caches['clients'], $connection->device_id);
+        $device = json_decode($device);
+        $transactionNumber = $device->current_data;
+        
+        $total = Cache::getInstance()->hSet(Config::caches['refresh_count'], $connection->device_id . '_' . $transactionNumber);
+        
+        if ($refreshTags['is_last'] != 0) {
+            $tags = Cache::getInstance()->hGet(Config::caches['refresh_tags'], $connection->device_id . '_' . $transactionNumber);
+            if ($tags) {
+                $tags = json_decode($tags, true);
+            }
+            $newTags = [
+                'more' => array_merge($refreshTags['more'], $tags['more']),
+                'less' => array_merge($refreshTags['less'], $tags['less']),
+            ];
+            Cache::getInstance()->hSet(Config::caches['refresh_tags'], $connection->device_id . '_' . $transactionNumber, json_encode($newTags));
+            
+            // 更新client
+            $device->last_time = time();
+            $device->sn ++;
+            Cache::getInstance()->hSet(Config::caches['clients'], $connection->device_id, json_encode($device));
+        } else {
+            $tags = Cache::getInstance()->hGet(Config::caches['refresh_tags'], $connection->device_id . '_' . $transactionNumber);
+            if ($tags) {
+                $tags = json_decode($tags, true);
+                $refreshTags = [
+                    'more' => array_merge($refreshTags['more'], $tags['more']),
+                    'less' => array_merge($refreshTags['less'], $tags['less']),
+                ];
+            }
+            
+            // 更新汇总表
+            DB::getInstance()->update('wl_device_refresh_logs', [
+                'more' => count($refreshTags['more']),
+                'less' => count($refreshTags['less'])
+            ], [
+                'refresh_id' => $transactionNumber
+            ]);
+            
+            // 插入标签
+            $inserts = "insert into  `wl_device_refresh_tags` (`device_id`,`tag`,`refresh_id`,`status`) values ";
+            
+            $values = '';
+            
+            if (! empty($refreshTags['more'])) {
+                foreach ($refreshTags['more'] as $tag) {
+                    $values .= '(' . $connection->device_id . ',\'' . $tag . '\',\'' . $transactionNumber . '\',2),';
+                }
+                unset($tag);
+            }
+            if (! empty($refreshTags['less'])) {
+                foreach ($refreshTags['less'] as $tag) {
+                    $values .= '(' . $connection->device_id . ',\'' . $tag . '\',\'' . $transactionNumber . '\',3),';
+                }
+                unset($tag);
+            }
+            $sql = $inserts . rtrim($values, ',');
+            DB::getInstance()->query($sql);
+            
+            // 更新client
+            $device->current_transaction = 'waiting';
+            $device->current_data = '';
+            $device->last_time = time();
+            $device->status = 0;
+            $device->sn ++;
+            Cache::getInstance()->hSet(Config::caches['clients'], $connection->device_id, json_encode($device));
+        }
+        
+        // 删除缓存
+        Cache::getInstance()->hDel(Config::caches['refresh_tags'], $connection->device_id . '_' . $transactionNumber);
+        Cache::getInstance()->hDel(Config::caches['refresh_count'], $connection->device_id . '_' . $transactionNumber);
+        
+        // 发送结束标记
+        Cache::getInstance()->publish(Config::broadcastChannels['server'], json_encode([
+            'command' => 'Refresh',
+            'data' => [
+                'transaction_number' => $transactionNumber
+            ]
+        ]));
+        // 响应客户端
+        $responseData = $server->send($fd, Byte::getInstance()->setSn($headers['sn'] ++)
+            ->setCommand(0x10)
+            ->response()
+            ->pack());
+        $responseRst = $server->send($fd, $responseData);
+        return $responseRst;
+    }
+
+    /**
+     *
+     * @param resource $server            
+     * @param int $fd            
+     * @param string $data            
+     * @return bool
+     */
+    private function send($server, $fd, $data)
+    {
+        return $server->send($fd, $data);
+    }
+
+    /**
+     *
+     * @param resource $server            
+     * @param int $fd            
+     * @param string $data            
+     * @return bool
+     */
+    private function close($server, $fd, $data)
+    {
+        return $server->close($fd);
     }
 }

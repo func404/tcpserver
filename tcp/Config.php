@@ -14,11 +14,11 @@ final class Config
 {
 
     const timezone = 'Asia/Shanghai';
-    
+
     const version = 'WLXS0.1';
 
     const processName = 'wlxs_tcpserver';
- 
+
     const bytesMap = [
         0x01 => 'getLogin',
         0x02 => 'getHeartbeat',
@@ -44,11 +44,22 @@ final class Config
         0x06 => 'deviceStatus',
         0x08 => 'deliverRequest',
         0x0a => 'deliverData',
-        0x0b => 'needAllTags',
-        0x0c => 'allTagsCount',
-        0x0d => 'allTags',
-        'SHOPPING'=>'shopping',
-        'BOOKED'=>'openDoor'
+        0x0b => 'inventory',
+        0x0c => 'inventorySummary',
+        0x0d => 'inventoryTags',
+        0x0e => 'refresh',
+        0x0f => 'refreshSummary',
+        0x10 => 'refreshTags',
+        'SHOPPING' => 'shopping',
+        'BOOKED' => 'openDoor',
+        'INVENTORY' => 'inventory', // 0x0b
+        'REFRESH' => 'refresh', // 0x0e
+        'CLOSE' => 'close' /* 关闭客户端连接 */
+    
+    ];
+
+    const clientResponse = [
+        0x03 => 'login'
     ];
 
     const db = [
@@ -102,12 +113,24 @@ final class Config
      * 心跳 30秒内没有心跳默认断开连接
      */
     const heartbeat = 3000;
+    
+    /**
+     * 客户端 命令
+     * @var array
+     */
+    const commands = [
+        'shop',
+        'inventory',
+        'refresh',
+        'store'
+    ];
 
     // 广播部分{{{{{
     const broadcastChannels = [
         'client' => 'wlxs_clientChannel', // API发起
         'server' => 'wlxs_serverChannel', // TCP发起
-        'device' => 'wlxs_deviceMonitor'
+        'device' => 'wlxs_deviceMonitor',
+        'request' => 'wlxs_deviceRequest'
     ];
 
     const clientChannel = [
@@ -159,6 +182,19 @@ final class Config
         'clients' => 'wlxs_tcpclient',
         'tags' => 'wlxs_tmptags',
         'tags_count' => 'wlxs_tagscount',
+        'inventory_count' => 'wlxs_inventory_count', //缓存盘存数量
+        'inventory_tags' => 'wlxs_inventory_tags', //缓存盘存的标签
+        'refresh_count' => 'wlxs_refresh_count', //缓存
+        'refresh_tags' => 'wlxs_refresh_tags'
+    ];
+
+    const transaction = [
+        'shop' => 'shopping',
+        'putin' => 'putin',
+        'inventory' => 'inventory',
+        'refresh' => 'refresh',
+        'book' => 'book'
+    
     ];
 
     const order = [
@@ -181,6 +217,6 @@ final class Config
     ];
 
     const action = [
-        'shopping'=>1
+        'shopping' => 1
     ];
 }
