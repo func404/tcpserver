@@ -84,16 +84,16 @@ class Work
         $clientDevice->tags = $loginInfo['tags'];
         $clientDevice->tags_uploaded = ($loginInfo['tags'] == 0);
         $clientDevice->weight = $loginInfo['weight'];
-        $clientDevice->current_data = 'waitting';
-        $clientDevice->current_transaction = '';
+        $clientDevice->current_data = '';
+        $clientDevice->current_transaction = 'waiting';
         $clientDevice->status = $loginInfo['status'];
         $clientDevice->sn = ++ $headers['sn'];
         /*
          * 缓存客户端信息
          */
         if ($loginInfo['transaction_number']) {
-            $clientDevice->current_data = 'shopping';
-            $clientDevice->current_transaction = $loginInfo['transaction_number'];
+            $clientDevice->current_data = $loginInfo['transaction_number'];
+            $clientDevice->current_transaction = 'shopping';
         }
         Cache::getInstance()->hSet(Config::caches['clients'], $device['device_id'], json_encode($clientDevice->toArray()));
         
@@ -118,8 +118,6 @@ class Work
             'login_id' => $loginId,
             'device_id' => $device['device_id']
         ])));
-        
-        Cache::getInstance()->publish(Config::broadcastChannels['device'], $clientCurrent);
         
         // 此处加入定时器
         swoole_timer_tick(Config::checkInterval, [
@@ -165,7 +163,7 @@ class Work
                 ->response()
                 ->pack();
             // RESPONSE HEATBEAT
-            $responseRst = $this->send($server, $fd, $responseData, true);
+            $responseRst = $this->send($server, $fd, $responseData);
             return $responseRst;
         }
     }
@@ -853,7 +851,7 @@ class Work
         $device->current_transaction = 'shopping';
         Cache::getInstance()->hSet(Config::caches['clients'], $data['device_id'], json_encode($device));
         
-        $rst = $this->opendoor($server, $device, $doorLogId);
+        $rst = $this->openDoor($server, $device, $doorLogId);
         if (! $rst) {
             DB::getInstance()->update('wl_device_orders', [
                 'status' => 0
@@ -1070,7 +1068,7 @@ class Work
         $device = Cache::getInstance()->hGet(Config::caches['clients'], $connection->device_id);
         $device = json_decode($device, true);
         Cache::getInstance()->hSet(Config::caches['clients'], $connection->device_id, json_encode(array_merge($device, [
-            'last_time' => $client['last_time'],
+            'last_time' => time(),
             'sn' => $headers['sn'] ++
         ])));
         $clientDevice = new Device();
@@ -1088,9 +1086,9 @@ class Work
      */
     private function freeDevice($device)
     {
-        $device['current_transaction'] = 'waiting';
-        $device['current_data'] = '';
-        Cache::getInstance()->hSet(Config::caches['clients'], $device['device_id'], json_encode($device));
+        $device->current_transaction = 'waiting';
+        $device->current_data = '';
+        Cache::getInstance()->hSet(Config::caches['clients'], $device['device_id'], json_encode($device->toArray()));
         return true;
     }
 

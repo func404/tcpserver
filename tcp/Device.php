@@ -22,7 +22,7 @@ class Device implements \ArrayAccess
 
     public $weight = 0;
 
-    public $current_transaction = 'waitting';
+    public $current_transaction = 'waiting';
 
     public $current_data = '';
 

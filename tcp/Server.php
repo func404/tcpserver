@@ -69,7 +69,7 @@ class Server
             }
             $data = $headers['data'];
             
-            $server->send($fd, Config::serverMap[$headers['command']]);
+            $server->send($fd, $commands[$headers['command']]);
             return call_user_func_array([
                 new Work(),
                 $commands[$headers['command']]
@@ -157,7 +157,7 @@ class Server
         $connection = $server->connection_info($fd);
         $client = Cache::getInstance()->hGet(Config::caches['connections'], $fd);
         if (! empty($client)) {
-            $client = json_decode($$client, true);
+            $client = json_decode($client, true);
             if ($client['device_id']) {
                 Cache::getInstance()->hDel(Config::caches['clients'], $client['device_id']);
             }
