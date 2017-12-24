@@ -1088,7 +1088,7 @@ class Work
     {
         $device->current_transaction = 'waiting';
         $device->current_data = '';
-        Cache::getInstance()->hSet(Config::caches['clients'], $device['device_id'], json_encode($device->toArray()));
+        Cache::getInstance()->hSet(Config::caches['clients'], $device->device_id, json_encode($device->toArray()));
         return true;
     }
 

@@ -1,74 +1,93 @@
 <?php
 namespace tcp;
 
-class Observer
+include '../tcp/DB.php';
+include '../tcp/Config.php';
+include '../tcp/Cache.php';
+$db = DB::getInstance();
+$cache = Cache::getInstance();
+$ch = Config::broadcastChannels['client'];
+$commands = Config::orderMap;
+if ($argc < 2) {
+    fwrite(STDOUT, "Please choose command: ");
+    $i = 1;
+    $tmp = [];
+    foreach ($commands as $key => $value) {
+        fwrite(STDOUT, "$i ): $key,$value");
+        $tmp[$i] = $key;
+    }
+    $j = trim(fgets(STDIN));
+    $do = strtoupper($tmp[$j]);
+} else {
+    $do = strtoupper($argv[1]);
+}
+
+if (! array_key_exists($do, $commands)) {
+    fwrite(STDOUT, "Command: ");
+    $i = 1;
+    $tmp = [];
+    foreach ($commands as $key => $value) {
+        fwrite(STDOUT, "$i ): $key,$value");
+        $tmp[$i] = $key;
+    }
+}
+
+// 'SHOPPING' => 'orderShopping',
+// 'BOOKED' => 'openDoor',
+// 'INVENTORY' => 'orderInventory', // 0x0b
+// 'REFRESH' => 'orderRefresh', // 0x0e
+// 'STATUS' => 'orderStatus', // 0x0e
+// 'CLOSE' => 'orderClose' /* 关闭客户端连接 */
+$device_id = 1000000002;
+$data=[];
+switch ($do) {
+    case 'SHOPPING':
+        $data = doShopping();
+        break;
+    case 'BOOKED':
+        break;
+    case 'INVENTORY':
+        break;
+    case 'REFRESH':
+        break;
+    case 'STATUS':
+        break;
+    case 'CLOSE':
+        break;
+}
+
+function doShopping()
 {
-
-    private static $instance;
-
-    private $tcpClient;
-
-    public static function getInstance()
-    {
-        if (! (self::$instance instanceof self)) {
-            self::$instance = new self();
-        }
-        return self::$instance;
-    }
-
-    public function listener($instance, $channel, $message)
-    {
-        call_user_func([
-            $this,
-            $channel
-        ], $message);
-    }
-
-    public function clientChannel($message)
-    {
-        $message = json_decode($message);
-        call_user_func([
-            $this,
-            Config::$message->cmd
-        ], $message->data);
-    }
-
-    public function serverChannel()
-    {
-        $message = json_decode($message);
-        call_user_func([
-            $this,
-            Config::$message->cmd
-        ], $message->data);
-    }
-
-    public function deviceMonitor()
-    {
-        ;
-    }
-
-    /**
-     * 通知服务器开门
-     * 
-     * @param array $data            
-     */
-    public function openDoor($data)
-    {
-        $data = [
-            'device_number' => $data['device_number'],
-            'transaction_id' => $data['transaction_id'],
-        ];
-        Client::getInstance()->send($data);
-        Client::getInstance()->recv();
-    }
-
-    public function closeDoor($data)
-    {
-        Api::getInstance()->pay($data['close_id']);
-    }
-
-    public function dealOrder($data)
-    {
-        ;
-    }
+    $orderId = time();
+    $doorID = DB::getInstance()->insert('wl_device_door_logs', [
+        'login_id' => 9,
+        'device_id' => 1000000002,
+        'open_time' => date("Y-m-d H:i:s")
+    ], true);
+    
+    DB::getInstance()->insert('wl_device_orders', [
+        'device_door_log_id' => $doorID,
+        'order_id' => 1000000002,
+        'created_time' => date("Y-m-d H:i:s")
+    ], true);
+    // {\"command\":\"SHOPPING\",\"data\":{\"device_id\":\"1000000002\",\"transaction_number\":1000000104}}"
+    
+    return [
+        'command' => 'SHOPPING',
+        'data' => [
+            'device_id' => 1000000002,
+            'transaction_number' => $doorID
+        ]
+    ];
+}
+function doStatus()
+{
+  
+    return [
+        'command' => 'STATUS',
+        'data' => [
+            'device_id' => 1000000002,
+            'transaction_number' => $doorID
+        ]
+    ];
 }
