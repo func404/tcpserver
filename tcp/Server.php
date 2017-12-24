@@ -62,15 +62,17 @@ class Server
         $client = $server->connection_info($fd);
         
         if (in_array($client['remote_ip'], Config::ipAllow)) {
+            $commands = Config::orderMap;
             $headers = json_decode($data, true);
             if (! $headers) {
                 $server->close($fd);
             }
             $data = $headers['data'];
+            
             $server->send($fd, Config::serverMap[$headers['command']]);
-            call_user_func_array([
+            return call_user_func_array([
                 new Work(),
-                Config::serverMap[$headers['command']]
+                $commands[$headers['command']]
             ], [
                 $server,
                 $fd,
@@ -79,13 +81,11 @@ class Server
                 $headers,
                 $client
             ]);
-            return false;
         } else {
+            $commands = Config::serverMap;
             $bytes = (new Byte())->unpack($data);
             $headers = $bytes->headers;
-            if (in_array($headers['command'], array_keys(Config::clientResponse))) {
-                return true;
-            }
+            
             // 验证请求头
             foreach ($headers as $header) {
                 if (strlen($header) == 0) {
@@ -93,7 +93,7 @@ class Server
                         ->response(Error::packageStructureError)
                         ->pack();
                     Logger::getInstance()->write('PackageStructureError:' . Error::packageStructureError, 'error');
-                    Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'], 'error');
+                    Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'] . ':' . $client['remote_port'], 'error');
                     $server->send($fd, $response);
                     $server->close($fd);
                     return false;
@@ -112,6 +112,35 @@ class Server
                 return false;
             }
             
+            // 验证命令
+            if (in_array($headers['command'], array_keys(Config::serverMap))) {
+                return call_user_func_array([
+                    new Work(),
+                    Config::serverMap[$headers['command']]
+                ], [
+                    $server,
+                    $fd,
+                    $from_id,
+                    $data,
+                    $headers,
+                    $client
+                ]);
+            } else {
+                if ($headers['flags'] == 1) {
+                    return true;
+                } else {
+                    $responseData = (new Byte())->setSn($headers['sn'] ++)
+                        ->response(Error::invalidCommand)
+                        ->pack();
+                    Logger::getInstance()->write('InvalidCommand:' . Error::invalidCommand, 'error');
+                    Logger::getInstance()->write('Command:' . $headers['command'], 'error');
+                    Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'] . ':' . $client['remote_port'], 'error');
+                    $responseRst = $server->send($fd, $responseData);
+                    $closeRst = $server->close($fd);
+                    return false;
+                }
+            }
+            
             // 记录请求数据
             $requestArr = $headers;
             $requestArr['data'] = $bytes->getRequestData();
@@ -120,32 +149,6 @@ class Server
             if ($$headers['command'] != 0x02) {
                 Logger::getInstance()->write(json_encode($logArr), 'request');
             }
-        }
-        
-        // 验证命令
-        if (in_array($headers['command'], array_keys(Config::serverMap))) {
-            
-            return call_user_func_array([
-                new Work(),
-                Config::serverMap[$headers['command']]
-            ], [
-                $server,
-                $fd,
-                $from_id,
-                $data,
-                $headers,
-                $client
-            ]);
-        } else {
-            $responseData = (new Byte())->setSn($headers['sn'] ++)
-                ->response(Error::invalidCommand)
-                ->pack();
-            Logger::getInstance()->write('InvalidCommand:' . Error::invalidCommand, 'error');
-            Logger::getInstance()->write('Command:' . $headers['command'], 'error');
-            Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'] . ':' . $client['remote_port'], 'error');
-            $responseRst = $server->send($fd, $responseData);
-            $closeRst = $server->close($fd);
-            return false;
         }
     }
 
