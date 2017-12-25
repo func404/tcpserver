@@ -15,7 +15,7 @@ if ($argc < 2) {
     foreach ($commands as $key => $value) {
         fwrite(STDOUT, "$i ): $key,$value\n");
         $tmp[$i] = $key;
-        $i++;
+        $i ++;
     }
     $j = trim(fgets(STDIN));
     $do = strtoupper($tmp[$j]);
@@ -40,7 +40,7 @@ if (! array_key_exists($do, $commands)) {
 // 'STATUS' => 'orderStatus', // 0x0e
 // 'CLOSE' => 'orderClose' /* 关闭客户端连接 */
 $device_id = 1000000002;
-$data=[];
+$data = [];
 switch ($do) {
     case 'SHOPPING':
         $data = doShopping();
@@ -57,14 +57,16 @@ switch ($do) {
     case 'CLOSE':
         break;
 }
-print_r($data);
+
+Cache::getInstance()->publish($ch, json_encode($data));
+
 function doShopping()
 {
     $orderId = time();
-$doorID=    DB::getInstance()->insert('wl_device_door_logs', [
+    $doorID = DB::getInstance()->insert('wl_device_door_logs', [
         'login_id' => 9,
-        'status'=>0,
-        'action'=>'shopping',
+        'status' => 0,
+        'action' => 'shopping',
         'device_id' => 1000000002,
         'open_time' => date("Y-m-d H:i:s")
     ], true);
@@ -84,12 +86,16 @@ $doorID=    DB::getInstance()->insert('wl_device_door_logs', [
         ]
     ];
 }
+
+function doInventory()
+{
+    ;
+}
+
 function doStatus()
 {
-  
     return [
         'command' => 'STATUS',
-        'data' => [
-        ]
+        'data' => []
     ];
 }
