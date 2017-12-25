@@ -103,7 +103,7 @@ class Work
         /*
          * 缓存客户端信息
          */
-        if ($loginInfo['transaction_number']) {
+        if (trim($loginInfo['transaction_number'])) {
             $clientDevice->current_data = $loginInfo['transaction_number'];
             $clientDevice->current_transaction = 'shopping';
         }
@@ -481,7 +481,7 @@ class Work
             $device->tags_uploaded = true;
             Cache::getInstance()->hSet(Config::caches['clients'], $device->device_id, json_encode($device->toArray()));
             
-            if ($total != Cache::getInstance()->hGet($device->tags, $device->device_id . '_' . $transactionNumber)) {
+            if ($total != $device->tags) {
                 $responseData = $bytes->setSn($headers['sn'] ++)
                     ->response(Error::tagsNumberUnmatch)
                     ->pack();
