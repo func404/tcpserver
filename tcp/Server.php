@@ -119,7 +119,7 @@ class Server
             
             // 验证命令
             if (in_array($headers['command'], array_keys(Config::serverMap))) {
-                return call_user_func_array([
+                $rst = call_user_func_array([
                     new Work(),
                     Config::serverMap[$headers['command']]
                 ], [
@@ -130,6 +130,17 @@ class Server
                     $headers,
                     $client
                 ]);
+                
+                // 记录请求数据
+                $requestArr = $headers;
+                $requestArr['data'] = $bytes->getRequestData();
+                $logArr = array_merge($client, $requestArr);
+                Cache::getInstance()->publish(Config::broadcastChannels['request'], json_encode($logArr));
+                if ($$headers['command'] != 0x02) {
+                    Logger::getInstance()->write(json_encode($logArr).'|'.intval($rst), 'device_request');
+                }
+                return $rst;
+                
             } else {
                 if ($headers['flags'] == 1) {
                     return true;
@@ -146,14 +157,6 @@ class Server
                 }
             }
             
-            // 记录请求数据
-            $requestArr = $headers;
-            $requestArr['data'] = $bytes->getRequestData();
-            $logArr = array_merge($client, $requestArr);
-            Cache::getInstance()->publish(Config::broadcastChannels['request'], json_encode($logArr));
-            if ($$headers['command'] != 0x02) {
-                Logger::getInstance()->write(json_encode($logArr), 'request');
-            }
         }
     }
 
