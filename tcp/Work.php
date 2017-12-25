@@ -300,7 +300,7 @@ class Work
             $lessTags = array_unique($closeTags['less']);
             
             $total = count($moreTags) + count($lessTags);
-
+            
             if ($total == 0) {
                 $responseData = $bytes->setSn($headers['sn'] ++)
                     ->response(Error::tagsNumberUnmatch)
@@ -664,7 +664,7 @@ class Work
         $responseData = $bytes->setSn($headers['sn'] ++)
             ->response()
             ->pack();
-        $responseRst = $this->send($server, $fd, $data);
+        $responseRst = $this->send($server, $fd, $responseData);
         return $responseRst;
     }
 
@@ -810,7 +810,7 @@ class Work
         $responseData = $bytes->setSn($headers['sn'] ++)
             ->response()
             ->pack();
-        $responseRst = $this->send($server, $fd, $data);
+        $responseRst = $this->send($server, $fd, $responseData);
         return $responseRst;
     }
 
