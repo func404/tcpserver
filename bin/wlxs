@@ -3,7 +3,7 @@
 set_include_path(get_include_path() . PATH_SEPARATOR . dirname(__DIR__));
 
 spl_autoload_register(function ($class_name) {
-    if (preg_match('/^(tcp|lib)/', $class_name)) {
+    if (preg_match('/^(tcp|lib|config)/', $class_name)) {
         if ($class_name) {
             [
                 $ns,

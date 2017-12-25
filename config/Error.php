@@ -1,5 +1,5 @@
 <?php
-namespace tcp;
+namespace config;
 
 final class Error
 {
@@ -166,7 +166,7 @@ final class Error
 
     /**
      * 设备维护中
-     * 
+     *
      * @var int
      */
     const deviceIsmaintenance = 0xc2;

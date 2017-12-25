@@ -1,10 +1,12 @@
 <?php
+namespace lib;
+
+use config\Config;
+
 /**
  * redis 操作类
  * 2017-11-06
  */
-namespace tcp;
-
 class Cache extends \Redis
 {
 

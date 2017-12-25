@@ -1,7 +1,13 @@
 <?php
 namespace tcp;
 
-use lib\Device;
+use config\Device;
+use config\Error;
+use config\Config;
+use config\CH;
+use lib\DB;
+use lib\Cache;
+use lib\Logger;
 
 class Work
 {
@@ -32,7 +38,7 @@ class Work
             // RESPONSE invalidParameter
             $responseRst = $server->send($fd, $responseData);
             $closeRst = $server->close($fd);
-            Cache::getInstance()->publish(Config::broadcastChannels['device'], 'InvalidParameter:' . json_encode($loginInfo));
+            CH::pub(Config::broadcastChannels['device'], 'InvalidParameter:' . json_encode($loginInfo));
             return false;
         }
         $device = DB::getInstance()->getDeviceByNo($loginInfo['device_number']);
@@ -43,7 +49,7 @@ class Work
                 ->pack();
             Logger::getInstance()->write('DeviceUnlogined:' . Error::deviceUnlogined, 'error');
             Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'], 'error');
-            Cache::getInstance()->publish(Config::broadcastChannels['device'], 'DeviceUnlogined:' . json_encode($loginInfo));
+            CH::pub(Config::broadcastChannels['device'], 'DeviceUnlogined:' . json_encode($loginInfo));
             
             // RESPONSE deviceUnlogined
             $closeRst = $this->send($server, $fd, $responseData, true);
@@ -57,16 +63,16 @@ class Work
                 ->pack();
             Logger::getInstance()->write('DeviceKeyError:' . Error::deviceKeyError, 'error');
             Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'] . ':' . $client['remote_port'], 'error');
-            Cache::getInstance()->publish(Config::broadcastChannels['device'], 'DeviceKeyError:' . json_encode($loginInfo));
+            CH::pub(Config::broadcastChannels['device'], 'DeviceKeyError:' . json_encode($loginInfo));
             
             // RESPONSE deviceKeyError
             // RESPONSE deviceUnlogined
             $closeRst = $this->send($server, $fd, $responseData, true);
             return $closeRst;
         }
-
-        if ($loginInfo['transaction_number']) { //如果流水号存在
-            Cache::getInstance()->delete('');         
+        
+        if ($loginInfo['transaction_number']) { // 如果流水号存在
+            Cache::getInstance()->delete('');
         }
         
         // 保存登录日志
@@ -113,7 +119,7 @@ class Work
                 ->response(Error::serverError)
                 ->pack();
             Logger::getInstance()->write('serverError:' . Error::serverError . '  ' . __FILE__ . ' : ' . __LINE__, 'fatal');
-            Cache::getInstance()->publish(Config::broadcastChannels['device'], 'serverError:' . json_encode($loginInfo));
+            CH::pub(Config::broadcastChannels['device'], 'serverError:' . json_encode($loginInfo));
             
             // RESPONSE serverError
             $responseRst = $server->send($fd, $responseData);
@@ -217,7 +223,7 @@ class Work
         }
         
         $closeInfo = $bytes->getClosedoor();
-        $transactionNumber = $device['current_data'];
+        $transactionNumber = $device->current_data;
         
         if ($closeInfo['different_count'] == 0) {
             $order = DB::getInstance()->update('wl_device_door_logs', [
@@ -227,12 +233,12 @@ class Work
                 'id' => $transactionNumber
             ]);
             
-            Cache::getInstance()->publish(Config::broadcastChannels['server'], json_encode([
-                'command' => 'CLD',
-                'data' => [
-                    'transaction_number' => $transactionNumber
-                ]
-            ]));
+            if ($device->current_transaction == 'shopping') {
+                CH::pubShopping($transactionNumber);
+            } else {
+                CH::pubStore($transactionNumber);
+            }
+            
             // 更新client
             $this->freeDevice($device);
         } else {
@@ -322,6 +328,13 @@ class Work
             // 清除缓存数据
             Cache::getInstance()->hDel(Config::caches['transaction_count'], $device->device_id . '_' . $transactionNumber);
             Cache::getInstance()->hDel(Config::caches['transaction_tags'], $device->device_id . '_' . $transactionNumber);
+            
+            // 发送通知
+            if ($device->current_transaction == 'shopping') {
+                CH::pubShopping($transactionNumber);
+            } else {
+                CH::pubStore($transactionNumber);
+            }
             
             // 释放设备
             $this->freeDevice($device);
@@ -547,12 +560,7 @@ class Work
         
         if ($inventoryInfo['count'] == 0) {
             // 发送结束标记
-            Cache::getInstance()->publish(Config::broadcastChannels['server'], json_encode([
-                'command' => 'Inventory',
-                'data' => [
-                    'transaction_number' => $transactionNumber
-                ]
-            ]));
+            CH::pubInventory($transactionNumber);
             $this->freeDevice($device);
         } else {
             // 缓存标签变化数量
@@ -631,18 +639,15 @@ class Work
             }
             $sql = rtrim($inserts, ',');
             DB::getInstance()->query($sql);
+            
+            // 释放设备
             $this->freeDevice($device);
             // 删除缓存
             Cache::getInstance()->hDel(Config::caches['inventory_tags'], $device->device_id . '_' . $transactionNumber);
             Cache::getInstance()->hDel(Config::caches['inventory_count'], $device->device_id . '_' . $transactionNumber);
             
             // 发送结束标记
-            Cache::getInstance()->publish(Config::broadcastChannels['server'], json_encode([
-                'command' => 'Inventory',
-                'data' => [
-                    'transaction_number' => $transactionNumber
-                ]
-            ]));
+            CH::pubInventory($transactionNumber);
         } else {
             $tags = Cache::getInstance()->hGet(Config::caches['inventory_tags'], $device->device_id . '_' . $transactionNumber);
             if ($tags) {
@@ -712,12 +717,7 @@ class Work
         
         if ($refreshInfo['count'] == 0) {
             // 发送结束标记
-            Cache::getInstance()->publish(Config::broadcastChannels['server'], json_encode([
-                'command' => 'Refresh',
-                'data' => [
-                    'transaction_number' => $transactionNumber
-                ]
-            ]));
+            CH::pubRefresh($transactionNumber);
             $this->freeDevice($device);
         } else {
             // 缓存标签变化数量
@@ -794,12 +794,7 @@ class Work
             Cache::getInstance()->hDel(Config::caches['refresh_count'], $device->device_id . '_' . $transactionNumber);
             
             // 发送结束标记
-            Cache::getInstance()->publish(Config::broadcastChannels['server'], json_encode([
-                'command' => 'Refresh',
-                'data' => [
-                    'transaction_number' => $transactionNumber
-                ]
-            ]));
+            CH::pubRefresh($transactionNumber);
         } else {
             $tags = Cache::getInstance()->hGet(Config::caches['refresh_tags'], $device->device_id . '_' . $transactionNumber);
             if ($tags) {
@@ -1028,6 +1023,7 @@ class Work
         } else {
             return $server->close($device->fd);
         }
+        CH::pubClose($data['transaction_number']);
     }
 
     /**
@@ -1050,7 +1046,7 @@ class Work
             'master_pid' => $server->master_pid,
             'connections' => $server->connections
         ];
-        error_log(var_export($serverInfo, 1), 3, '/tmp/serverInfo');
+        CH::pubStatus($data['transaction_number']);
     }
 
     /**

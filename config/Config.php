@@ -1,5 +1,5 @@
 <?php
-namespace tcp;
+namespace config;
 
 /**
  * 配置参数文档
@@ -19,25 +19,9 @@ final class Config
 
     const processName = 'wlxs_tcpserver';
 
-    const bytesMap = [
-        0x01 => 'getLogin',
-        0x02 => 'getHeartbeat',
-        0x03 => 'setOpendoor',
-        0x04 => 'getClosedoor',
-        0x05 => 'getTransactionTags',
-        0x06 => 'getDeviceStatus',
-        0x07 => 'getLoginTags',
-        0x08 => 'setDeliverRequest',
-        0x09 => 'getDeliverResponse',
-        0x0a => 'setDeliverData',
-        0x0b => 'setNeedAllTags',
-        0x0c => 'getAllTagsCount',
-        0x0d => 'getAllTags'
-    ];
-
     /**
      * TCP命令
-     * 
+     *
      * @var array
      */
     const serverMap = [
@@ -60,7 +44,7 @@ final class Config
 
     /**
      * API命令
-     * 
+     *
      * @var array
      */
     const orderMap = [

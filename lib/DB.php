@@ -1,5 +1,7 @@
 <?php
-namespace tcp;
+namespace lib;
+
+use config\Config;
 
 class DB
 {

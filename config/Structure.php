@@ -1,44 +1,23 @@
 <?php
-namespace lib;
+namespace config;
 
-class Device implements \ArrayAccess
+abstract class Structure implements \ArrayAccess
 {
 
-    public $login_id = 0;
-
-    public $fd = 0;
-
-    public $device_id = 0;
-
-    public $connect_time = 0;
-
-    public $login_time = 0;
-
-    public $last_time = 0;
-
-    public $tags = 0;
-
-    public $tags_uploaded = false;
-
-    public $weight = 0;
-
-    public $current_transaction = 'waiting';
-
-    public $current_data = '';
-
-    public $status = 0;
-
-    public $sn = 0;
-
-    public function __construct()
+    public function __construct(array $attributes = [])
     {
-        $this->sn = $this->sn % 256;
+        if ($attributes) {
+            foreach ($attributes as $attribute => $type) {
+                settype($this->$attribute, $type);
+            }
+        }
     }
 
     /**
      *
-     * @param
-     *            $offset
+     * {@inheritdoc}
+     *
+     * @see ArrayAccess::offsetExists()
      */
     public function offsetExists($offset)
     {
@@ -47,8 +26,9 @@ class Device implements \ArrayAccess
 
     /**
      *
-     * @param
-     *            $offset
+     * {@inheritdoc}
+     *
+     * @see ArrayAccess::offsetGet()
      */
     public function offsetGet($offset)
     {
@@ -57,10 +37,9 @@ class Device implements \ArrayAccess
 
     /**
      *
-     * @param
-     *            $offset
-     * @param
-     *            $value
+     * {@inheritdoc}
+     *
+     * @see ArrayAccess::offsetSet()
      */
     public function offsetSet($offset, $value)
     {
@@ -73,8 +52,9 @@ class Device implements \ArrayAccess
 
     /**
      *
-     * @param
-     *            $offset
+     * {@inheritdoc}
+     *
+     * @see ArrayAccess::offsetUnset()
      */
     public function offsetUnset($offset)
     {
@@ -84,8 +64,8 @@ class Device implements \ArrayAccess
     /**
      * 禁止设置不在此类中的属性
      *
-     * @param unknown $offset            
-     * @param unknown $value            
+     * @param string $offset            
+     * @param string $value            
      * @return boolean
      */
     public function __set($offset, $value)
@@ -95,6 +75,11 @@ class Device implements \ArrayAccess
         }
     }
 
+    /**
+     * 转换成数组
+     *
+     * @return array
+     */
     public function toArray()
     {
         return (array) $this;

@@ -4,6 +4,9 @@
  */
 namespace tcp;
 
+use lib\Cache;
+use config\Config;
+
 class Timer
 {
 
