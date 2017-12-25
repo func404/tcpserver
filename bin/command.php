@@ -89,7 +89,38 @@ function doShopping()
 
 function doInventory()
 {
-    ;
+   $inventoryId = DB::getInstance()->insert('wl_device_inventory_logs',[
+       'device_id'=>1000000002,
+       'created_time'=>date("Y-m-d H:i:s"),
+    ]);
+
+    return [
+        'command' => 'INVENTORY',
+        'data' => [
+            'device_id' => 1000000002,
+            'transaction_number' => $inventoryId
+        ]
+    ];
+   
+}
+
+ function doRefresh()
+{
+    $refreshId =DB::getInstance()->insert('wl_device_refresh_logs',[
+       'device_id'=>1000000002,
+       'created_time'=>date("Y-m-d H:i:s"),
+    ]);
+
+
+    return [
+        'command' => 'REFRESH',
+        'data' => [
+            'device_id' => 1000000002,
+            'transaction_number' => $refreshId
+        ]
+    ];
+   
+
 }
 
 function doStatus()
