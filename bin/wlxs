@@ -16,8 +16,8 @@ spl_autoload_register(function ($class_name) {
 
 function start()
 {
-    if(file_exists(tcp\Config::tcpServerOpt['pid_file'])){
-        $handle = fopen(tcp\Config::tcpServerOpt['pid_file'], 'r');
+    if(file_exists(config\Config::tcpServerOpt['pid_file'])){
+        $handle = fopen(config\Config::tcpServerOpt['pid_file'], 'r');
         $pid  = trim(fgets($handle));
         fclose($handle);
         if ($pid) {
@@ -37,11 +37,11 @@ function start()
             }
         }
     }
-    $config = tcp\Config::tcpServer;
+    $config = config\Config::tcpServer;
     $server = new \swoole_server($config['host'], $config['port']);
     
-    \swoole_set_process_name(tcp\Config::processName);
-    $opt = tcp\Config::tcpServerOpt;
+    \swoole_set_process_name(config\Config::processName);
+    $opt = config\Config::tcpServerOpt;
     $server->set($opt);
     
     $server->on('Start', [
@@ -72,7 +72,7 @@ function start()
 
 function stop($options = [])
 {
-    $pidFile = tcp\Config::tcpServerOpt['pid_file'];
+    $pidFile = config\Config::tcpServerOpt['pid_file'];
     
     if (! file_exists($pidFile)) {
         echo "Pid file :{$pidFile} not exist \n";
@@ -129,7 +129,7 @@ function opCacheClear()
         opcache_reset();
     }
 }
-date_default_timezone_set(tcp\Config::timezone);
+date_default_timezone_set(config\Config::timezone);
 $helper = <<<EOT
 \033[10;36mstart\033[0m  Start Server!
 \033[10;36mstop\033[0m    Stop Server!

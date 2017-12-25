@@ -998,7 +998,7 @@ class Work
         $device->current_transaction = 'refresh';
         
         Cache::getInstance()->hSet(Config::caches['clients'], $data['device_id'], json_encode($device));
-        $rst = $this->inventory($server, $device, $refreshId);
+        $rst = $this->refresh($server, $device, $refreshId);
         return $rst;
     }
 

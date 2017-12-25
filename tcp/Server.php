@@ -68,12 +68,12 @@ class Server
         
         if (in_array($client['remote_ip'], Config::ipAllow)) {
             $commands = Config::orderMap;
+            var_dump($data); 
             $headers = json_decode($data, true);
             if (! $headers) {
                 $server->close($fd);
             }
             $data = $headers['data'];
-            
             $server->send($fd, $commands[$headers['command']]);
             return call_user_func_array([
                 new Work(),

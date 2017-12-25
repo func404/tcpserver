@@ -1,13 +1,11 @@
 <?php
-namespace tcp;
-
-include '../tcp/DB.php';
-include '../tcp/Config.php';
-include '../tcp/Cache.php';
-$db = DB::getInstance();
-$cache = Cache::getInstance();
-$ch = Config::broadcastChannels['client'];
-$commands = Config::orderMap;
+include '../lib/DB.php';
+include '../config/Config.php';
+include '../lib/Cache.php';
+$db = lib\DB::getInstance();
+$cache = lib\Cache::getInstance();
+$ch = config\Config::broadcastChannels['client'];
+$commands = config\Config::orderMap;
 if ($argc < 2) {
     fwrite(STDOUT, "Please choose command: \n");
     $i = 1;
@@ -48,8 +46,11 @@ switch ($do) {
     case 'BOOKED':
         break;
     case 'INVENTORY':
+        $data = doInventory();
         break;
     case 'REFRESH':
+        $data = doRefresh();
+        break;
         break;
     case 'STATUS':
         $data = doStatus();
@@ -58,12 +59,12 @@ switch ($do) {
         break;
 }
 
-Cache::getInstance()->publish($ch, json_encode($data));
+lib\Cache::getInstance()->publish($ch, json_encode($data));
 
 function doShopping()
 {
     $orderId = time();
-    $doorID = DB::getInstance()->insert('wl_device_door_logs', [
+    $doorID = lib\DB::getInstance()->insert('wl_device_door_logs', [
         'login_id' => 9,
         'status' => 0,
         'action' => 'shopping',
@@ -71,7 +72,7 @@ function doShopping()
         'open_time' => date("Y-m-d H:i:s")
     ], true);
     
-    DB::getInstance()->insert('wl_device_orders', [
+    lib\DB::getInstance()->insert('wl_device_orders', [
         'device_door_log_id' => $doorID,
         'order_id' => 1000000002,
         'created_time' => date("Y-m-d H:i:s")
@@ -89,10 +90,10 @@ function doShopping()
 
 function doInventory()
 {
-   $inventoryId = DB::getInstance()->insert('wl_device_inventory_logs',[
+   $inventoryId = lib\DB::getInstance()->insert('wl_device_inventory_logs',[
        'device_id'=>1000000002,
        'created_time'=>date("Y-m-d H:i:s"),
-    ]);
+    ],true);
 
     return [
         'command' => 'INVENTORY',
@@ -106,10 +107,10 @@ function doInventory()
 
  function doRefresh()
 {
-    $refreshId =DB::getInstance()->insert('wl_device_refresh_logs',[
+    $refreshId =lib\DB::getInstance()->insert('wl_device_refresh_logs',[
        'device_id'=>1000000002,
        'created_time'=>date("Y-m-d H:i:s"),
-    ]);
+    ],true);
 
 
     return [
