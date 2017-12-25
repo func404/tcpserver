@@ -1,6 +1,8 @@
 <?php
 namespace tcp;
 
+use lib\Device;
+
 class Work
 {
 
