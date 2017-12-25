@@ -90,8 +90,6 @@ function doStatus()
     return [
         'command' => 'STATUS',
         'data' => [
-            'device_id' => 1000000002,
-            'transaction_number' => $doorID
         ]
     ];
 }
