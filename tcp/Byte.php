@@ -120,7 +120,7 @@ class Byte
         return $this;
     }
 
-    public function setFlags($flags = '00')
+    public function setFlags($flags = 0)
     {
         $this->flags = $flags;
         return $this;
@@ -164,7 +164,7 @@ class Byte
         
         $return['sn'] = $this->sn = $decArr[6];
         
-        $return['flags'] = $this->flags = $decArr[7] . $decArr[8];
+        $return['flags'] = $this->flags = hexdec(dechex($decArr[7]) . dechex($decArr[8]));
         
         $return['checksum'] = $this->checksum = $decArr[$length];
         
@@ -224,7 +224,7 @@ class Byte
             $str .= chr($ck);
         }
         
-        $this->responseData =  implode(',', $arr);
+        $this->responseData = implode(',', $arr);
         
         return pack('a' . strlen($str), $str);
     }
@@ -621,6 +621,138 @@ class Byte
     }
 
     /**
+     * 盘存指令
+     *
+     * TARGET Server_To_Client
+     *
+     * @param string $transaction_number            
+     * @return \tcp\Byte
+     */
+    public function setInventory($transaction_number = '')
+    {
+        $this->load = $this->str2bytes($transaction_number);
+        return $this->setCommand(0x0b);
+    }
+
+    /**
+     * 盘存汇总
+     *
+     * TARGET Client_To_Server
+     *
+     * @param array $transaction
+     *            [
+     *            'status' => 0, //开关门状态 0 关门 1 开门
+     *            'different_count' => 0x00f0,
+     *            'weight' => 0x0010f001,
+     *            'transaction_number' => 'T123456789'
+     *            ];
+     * @return \tcp\Byte
+     */
+    public function setInventorySummary($transaction = [])
+    {
+        $this->load = array_merge($this->bigInt2bytes($transaction['status'], 1), $this->bigInt2bytes($transaction['different_count'], 2), $this->bigInt2bytes($transaction['weight'], 4), $this->str2bytes($transaction['transaction_number']));
+        return $this->setCommand(0x0c);
+    }
+
+    /**
+     * 盘存标签
+     *
+     * TARGET Client_To_Server
+     *
+     * @param array $more
+     *            增加的标签
+     * @param array $less
+     *            减少的标签
+     * @param number $is_last
+     *            是否结束
+     * @return \tcp\Byte
+     */
+    public function setInventoryTags($more = [], $less = [], $is_last = 1)
+    {
+        $tagsStr = $lessStr = $moreStr = '';
+        ! empty($more) ? $moreStr = '+' . implode(',+', $more) : '';
+        ! empty($less) ? $lessStr = '-' . implode(',-', $less) : '';
+        
+        if (! empty($more) || ! empty($less)) {
+            $tagsStr = implode(',', [
+                $moreStr,
+                $lessStr
+            ]);
+        }
+        $tagsStr = rtrim(ltrim($tagsStr, ','), ',');
+        
+        $this->load = array_merge($this->bigInt2bytes(strlen($tagsStr), 2), $this->str2bytes($tagsStr), $this->bigInt2bytes($is_last, 1));
+        
+        return $this->setCommand(0x0d);
+    }
+
+    /**
+     * 刷新客户端指令
+     *
+     * TARGET Server_To_Client
+     *
+     * @param string $transaction_number            
+     * @return \tcp\Byte
+     */
+    public function setRefresh($transaction_number = '')
+    {
+        $this->load = $this->str2bytes($transaction_number);
+        return $this->setCommand(0x0e);
+    }
+
+    /**
+     * 刷新汇总
+     *
+     * TARGET Client_To_Server
+     *
+     * @param array $transaction
+     *            [
+     *            'status' => 0, //开关门状态 0 关门 1 开门
+     *            'different_count' => 0x00f0,
+     *            'weight' => 0x0010f001,
+     *            'transaction_number' => 'T123456789'
+     *            ];
+     * @return \tcp\Byte
+     */
+    public function setRefreshSummary($transaction = [])
+    {
+        $this->load = array_merge($this->bigInt2bytes($transaction['status'], 1), $this->bigInt2bytes($transaction['different_count'], 2), $this->bigInt2bytes($transaction['weight'], 4), $this->str2bytes($transaction['transaction_number']));
+        return $this->setCommand(0x0f);
+    }
+
+    /**
+     * 刷新变化情况
+     *
+     * TARGET Client_To_Server
+     *
+     * @param array $more
+     *            增加的标签
+     * @param array $less
+     *            减少的标签
+     * @param number $is_last
+     *            是否结束
+     * @return \tcp\Byte
+     */
+    public function setRefreshTags($more = [], $less = [], $is_last = 1)
+    {
+        $tagsStr = $lessStr = $moreStr = '';
+        ! empty($more) ? $moreStr = '+' . implode(',+', $more) : '';
+        ! empty($less) ? $lessStr = '-' . implode(',-', $less) : '';
+        
+        if (! empty($more) || ! empty($less)) {
+            $tagsStr = implode(',', [
+                $moreStr,
+                $lessStr
+            ]);
+        }
+        $tagsStr = rtrim(ltrim($tagsStr, ','), ',');
+        
+        $this->load = array_merge($this->bigInt2bytes(strlen($tagsStr), 2), $this->str2bytes($tagsStr), $this->bigInt2bytes($is_last, 1));
+        
+        return $this->setCommand(0x10);
+    }
+
+    /**
      * 客户端发给服务端的 登录信息
      *
      * @return array [
@@ -826,7 +958,7 @@ class Byte
      *         'transaction_number' => 'P123456789';
      *         ];
      */
-    public function getNeedAllTags()
+    public function getInventory()
     {
         return (array) [
             'transaction_number' => $this->bytes2str(array_slice($this->load, 0, 10))
@@ -844,7 +976,7 @@ class Byte
      *         'weight' => 0x0010f0f0
      *         ];
      */
-    public function getAllTagsCount()
+    public function getInventorySummary()
     {
         return (array) [
             'transaction_number' => $this->bytes2str(array_slice($this->load, 0, 10)),
@@ -865,9 +997,9 @@ class Byte
      *         'is_last' => $isLast //是否结束
      *         ];
      */
-    public function getAllTgas()
+    public function getInventoryTags()
     {
-        $current = $more = $less = [];
+        $last = $more = $less = [];
         
         $length = $this->bigBytes2int(array_slice($this->load, 0, 2));
         $tags = $this->bytes2str(array_slice($this->load, 2, $length));
@@ -885,14 +1017,91 @@ class Byte
                     $more[] = $add[1];
                 }
                 if (preg_match('/^=([a-zA-Z0-9_-]+)/', $tag, $now)) {
-                    $current[] = $now[1];
+                    $last[] = $now[1];
                 }
             }
         }
         return (array) [
             'more' => $more,
             'less' => $less,
-            'current' => $current,
+            'last' => $last,
+            'is_last' => $isLast
+        ];
+    }
+    
+    
+    
+    /**
+     * 服务器端发给客户端的 请求刷新盘存
+     *
+     * @return array 业务流水号
+     *         [
+     *         'transaction_number' => 'P123456789';
+     *         ];
+     */
+    public function getRefresh()
+    {
+        return (array) [
+            'transaction_number' => $this->bytes2str(array_slice($this->load, 0, 10))
+        ];
+    }
+    
+    /**
+     * 客户端发给服务器 盘存汇总
+     *
+     * @return array 盘存汇总
+     *         [
+     *         'transaction_number' => 'P0001001001',
+     *         'status' => 1, // 0-关门 1-开门
+     *         'count' => 0x0010, // 总数
+     *         'weight' => 0x0010f0f0
+     *         ];
+     */
+    public function getRefreshSummary()
+    {
+        return [
+            'status' => $this->bigBytes2int(array_slice($this->load, 0, 1)),
+            'different_count' => $this->bigBytes2int(array_slice($this->load, 1, 2)),
+            'weight' => $this->bigBytes2int(array_slice($this->load, 3, 4)),
+            'transaction_number' => $this->bytes2str(array_slice($this->load, 7, 10))
+        ];
+    }
+    
+    /**
+     * 客户端发给服务器端的盘存标签集合
+     *
+     * @return array 盘存结果
+     *         [
+     *         'more' => $more, //增加的标签
+     *         'less' => $less, //减少的标签
+     *         'current' => $current, //当前的标签
+     *         'is_last' => $isLast //是否结束
+     *         ];
+     */
+    public function getRefreshTags()
+    {
+        $more = $less = [];
+        
+        $length = $this->bigBytes2int(array_slice($this->load, 0, 2));
+        $tags = $this->bytes2str(array_slice($this->load, 2, $length));
+        $isLast = $this->bigBytes2int(array_slice($this->load, $length + 2, 1));
+        
+        if (strlen($tags) > 0) {
+            $tagsArr = [];
+            $tagsArr = explode(',', $tags);
+            
+            $reduce = $add = [];
+            foreach ($tagsArr as $tag) {
+                if (preg_match('/^-([a-zA-Z0-9_-]+)/', $tag, $reduce)) {
+                    $less[] = $reduce[1];
+                } else if (preg_match('/^\+([a-zA-Z0-9_-]+)/', $tag, $add)) {
+                    $more[] = $add[1];
+                }
+            }
+        }
+        return (array) [
+            'more' => $more,
+            'less' => $less,
             'is_last' => $isLast
         ];
     }
@@ -906,6 +1115,7 @@ class Byte
     public function response($code = 0)
     {
         $this->load = $this->bigInt2bytes($code, 1);
+        $this->flags = 0x0001;
         return $this;
     }
 
@@ -926,6 +1136,7 @@ class Byte
 
     /**
      * 请求的原始数据
+     *
      * @return string
      */
     public function getRequestData()
@@ -935,6 +1146,7 @@ class Byte
 
     /**
      * 返回的原始数据
+     *
      * @return string
      */
     public function getResponseData()

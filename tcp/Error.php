@@ -157,4 +157,17 @@ final class Error
      * @var int
      */
     const sendLoginTagsRepeat = 0xa9;
+
+    /**
+     * 客户端响应
+     * 设备忙
+     */
+    const deviceIsBusy = 0xc1;
+
+    /**
+     * 设备维护中
+     * 
+     * @var int
+     */
+    const deviceIsmaintenance = 0xc2;
 }

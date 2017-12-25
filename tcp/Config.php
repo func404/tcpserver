@@ -14,11 +14,11 @@ final class Config
 {
 
     const timezone = 'Asia/Shanghai';
-    
+
     const version = 'WLXS0.1';
 
     const processName = 'wlxs_tcpserver';
- 
+
     const bytesMap = [
         0x01 => 'getLogin',
         0x02 => 'getHeartbeat',
@@ -35,6 +35,11 @@ final class Config
         0x0d => 'getAllTags'
     ];
 
+    /**
+     * TCP命令
+     * 
+     * @var array
+     */
     const serverMap = [
         0x01 => 'login',
         0x07 => 'loginTags',
@@ -44,11 +49,31 @@ final class Config
         0x06 => 'deviceStatus',
         0x08 => 'deliverRequest',
         0x0a => 'deliverData',
-        0x0b => 'needAllTags',
-        0x0c => 'allTagsCount',
-        0x0d => 'allTags',
-        'SHOPPING'=>'shopping',
-        'BOOKED'=>'openDoor'
+        0x0b => 'inventory',
+        0x0c => 'inventorySummary',
+        0x0d => 'inventoryTags',
+        0x0e => 'refresh',
+        0x0f => 'refreshSummary',
+        0x10 => 'refreshTags'
+    
+    ];
+
+    /**
+     * API命令
+     * 
+     * @var array
+     */
+    const orderMap = [
+        'SHOPPING' => 'orderShopping',
+        'BOOKED' => 'openDoor',
+        'INVENTORY' => 'orderInventory', // 0x0b
+        'REFRESH' => 'orderRefresh', // 0x0e
+        'STATUS' => 'orderStatus', // 0x0e
+        'CLOSE' => 'orderClose' /* 关闭客户端连接 */
+    ];
+
+    const clientResponse = [
+        0x03 => 'login'
     ];
 
     const db = [
@@ -103,11 +128,24 @@ final class Config
      */
     const heartbeat = 3000;
 
+    /**
+     * 客户端 命令
+     *
+     * @var array
+     */
+    const commands = [
+        'shop',
+        'inventory',
+        'refresh',
+        'store'
+    ];
+
     // 广播部分{{{{{
     const broadcastChannels = [
         'client' => 'wlxs_clientChannel', // API发起
         'server' => 'wlxs_serverChannel', // TCP发起
-        'device' => 'wlxs_deviceMonitor'
+        'device' => 'wlxs_deviceMonitor',
+        'request' => 'wlxs_deviceRequest'
     ];
 
     const clientChannel = [
@@ -157,16 +195,23 @@ final class Config
     const caches = [
         'connections' => 'wlxs_connections',
         'clients' => 'wlxs_tcpclient',
-        'tags' => 'wlxs_tmptags',
-        'tags_count' => 'wlxs_tagscount',
+        'login_tags' => 'wlxs_login_tags',
+        'login_count' => 'wlxs_login_count',
+        'transaction_count' => 'wlxs_transaction_count', // 开关门交易中的标签梳理
+        'transaction_tags' => 'wlxs_transaction_tags', // 开关门交易中的标签
+        'inventory_count' => 'wlxs_inventory_count', // 缓存盘存数量
+        'inventory_tags' => 'wlxs_inventory_tags', // 缓存盘存的标签
+        'refresh_count' => 'wlxs_refresh_count', // 缓存
+        'refresh_tags' => 'wlxs_refresh_tags'
     ];
 
-    const order = [
-        'created' => 0,
-        'opendoor' => 1,
-        'closedoor' => 2,
-        'paying' => 3,
-        'success' => 4
+    const transaction = [
+        'shop' => 'shopping',
+        'putin' => 'putin',
+        'inventory' => 'inventory',
+        'refresh' => 'refresh',
+        'book' => 'book'
+    
     ];
 
     /**
@@ -181,6 +226,6 @@ final class Config
     ];
 
     const action = [
-        'shopping'=>1
+        'shopping' => 1
     ];
 }

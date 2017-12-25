@@ -4,6 +4,33 @@ namespace tcp;
 class Server
 {
 
+    public static function onStart($server)
+    {
+        $content = json_encode($server);
+        Logger::getInstance()->write($content, 'server');
+        $run_log = "
+                     _       __    __    _____,
+                    | |      \ \  / /   / ____|
+ __      __      __ | |       \ \/ /   | (___
+ \ \    /  \    / / | |        \ \/     \___ \
+  \ \  / /\ \  / /  | |        /\ \         ) |
+   \ \/ /  \ \/ /   | |___/|  / /\ \    ____/ /
+    \__/    \__/    |______| /_/  \_\  |_____/
+            
+";
+        fwrite(STDOUT, $run_log . "\n");
+        $serverInfo = implode('|', [
+            $server->master_pid,
+            $server->manager_pid,
+            $server->port,
+            $server->setting['worker_num'],
+            $server->setting['max_request'],
+            $server->setting['pid_file']
+        
+        ]);
+        fwrite(STDOUT, 'SERVER_START|' . date("Y-m-d H:i:s") . '|' . $serverInfo . "\n");
+    }
+
     public static function onConnect($server, $fd)
     {
         $connection = $server->connection_info($fd);
@@ -14,8 +41,10 @@ class Server
                 'device_id' => 0
             ])));
             
-            $log =  date('Y-m-d H:i:s').':'.implode('|', $connection) . " is Connected [{$fd}]";
-            echo $log . "\n";
+            // 记录连接情况
+            $clientInfo = date('Y-m-d H:i:s') . '|' . implode('|', $connection) . '|' . $fd;
+            fwrite(STDOUT, 'CLIENT_CONNECT|' . $clientInfo . "\n");
+            
             // 定时器，loginTimeout 后自动断开
             swoole_timer_after(Config::loginTimeout, [
                 Timer::class,
@@ -31,16 +60,19 @@ class Server
     public static function onReceive($server, $fd, $from_id, $data)
     {
         $client = $server->connection_info($fd);
+        
         if (in_array($client['remote_ip'], Config::ipAllow)) {
+            $commands = Config::orderMap;
             $headers = json_decode($data, true);
             if (! $headers) {
                 $server->close($fd);
             }
             $data = $headers['data'];
-            $server->send($fd, Config::serverMap[$headers['command']]);
-            call_user_func_array([
+            
+            $server->send($fd, $commands[$headers['command']]);
+            return call_user_func_array([
                 new Work(),
-                Config::serverMap[$headers['command']]
+                $commands[$headers['command']]
             ], [
                 $server,
                 $fd,
@@ -49,10 +81,11 @@ class Server
                 $headers,
                 $client
             ]);
-            return false;
         } else {
+            $commands = Config::serverMap;
             $bytes = (new Byte())->unpack($data);
             $headers = $bytes->headers;
+            
             // 验证请求头
             foreach ($headers as $header) {
                 if (strlen($header) == 0) {
@@ -60,7 +93,7 @@ class Server
                         ->response(Error::packageStructureError)
                         ->pack();
                     Logger::getInstance()->write('PackageStructureError:' . Error::packageStructureError, 'error');
-                    Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'], 'error');
+                    Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'] . ':' . $client['remote_port'], 'error');
                     $server->send($fd, $response);
                     $server->close($fd);
                     return false;
@@ -78,78 +111,66 @@ class Server
                 $server->close($fd);
                 return false;
             }
-        }
-        
-        // 验证命令
-        if (in_array($headers['command'], array_keys(Config::serverMap))) {
-            call_user_func_array([
-                new Work(),
-                Config::serverMap[$headers['command']]
-            ], [
-                $server,
-                $fd,
-                $from_id,
-                $data,
-                $headers,
-                $client
-            ]);
-        } else {
-            $response = (new Byte())->setSn($headers['sn'] ++)
-                ->response(Error::invalidCommand)
-                ->pack();
-            Logger::getInstance()->write('InvalidCommand:' . Error::invalidCommand, 'error');
-            Logger::getInstance()->write('Command:' . $headers['command'], 'error');
-            Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'], 'error');
-            $server->send($fd, $response);
-            $server->close($fd);
-            return false;
+            
+            // 验证命令
+            if (in_array($headers['command'], array_keys(Config::serverMap))) {
+                return call_user_func_array([
+                    new Work(),
+                    Config::serverMap[$headers['command']]
+                ], [
+                    $server,
+                    $fd,
+                    $from_id,
+                    $data,
+                    $headers,
+                    $client
+                ]);
+            } else {
+                if ($headers['flags'] == 1) {
+                    return true;
+                } else {
+                    $responseData = (new Byte())->setSn($headers['sn'] ++)
+                        ->response(Error::invalidCommand)
+                        ->pack();
+                    Logger::getInstance()->write('InvalidCommand:' . Error::invalidCommand, 'error');
+                    Logger::getInstance()->write('Command:' . $headers['command'], 'error');
+                    Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'] . ':' . $client['remote_port'], 'error');
+                    $responseRst = $server->send($fd, $responseData);
+                    $closeRst = $server->close($fd);
+                    return false;
+                }
+            }
+            
+            // 记录请求数据
+            $requestArr = $headers;
+            $requestArr['data'] = $bytes->getRequestData();
+            $logArr = array_merge($client, $requestArr);
+            Cache::getInstance()->publish(Config::broadcastChannels['request'], json_encode($logArr));
+            if ($$headers['command'] != 0x02) {
+                Logger::getInstance()->write(json_encode($logArr), 'request');
+            }
         }
     }
 
     public static function onClose($server, $fd)
     {
-        $fdinfo = $server->connection_info($fd);
-        $c = Cache::getInstance()->hGet(Config::caches['connections'], $fd);
-        if (! empty($c)) {
-            
-            $c = json_decode($c);
-            if ($c->device_id) {
-                Cache::getInstance()->hDel(Config::caches['clients'], $c->device_id);
-                echo date('Y-m-d H:i:s').':'.$c->device_id  . " is disconnected [{$fd}]\n";
+        $connection = $server->connection_info($fd);
+        $client = Cache::getInstance()->hGet(Config::caches['connections'], $fd);
+        if (! empty($client)) {
+            $client = json_decode($client, true);
+            if ($client['device_id']) {
+                Cache::getInstance()->hDel(Config::caches['clients'], $client['device_id']);
             }
+            // 记录设备断开情况
+            fwrite(STDOUT, 'DEVICE_DISCONNECT|' . implode('|', $client) . "\n");
         }
         Logger::getInstance()->write('Close:' . $fd, 'server');
+        
+        // 记录连接断开连接情况
+        $clientInfo = date('Y-m-d H:i:s') . '|' . implode('|', $connection) . '|' . $fd;
+        fwrite(STDOUT, 'CLIENT_DISCONNECT|' . $clientInfo . "\n");
+        
         Cache::getInstance()->hDel(Config::caches['connections'], $fd);
-        
-    }
-
-    public static function onStart($server)
-    {
-        $content = json_encode($server);
-        Logger::getInstance()->write($content, 'server');
-        $run_log = "
-                     _       __    __    _____,
-                    | |      \ \  / /   / ____|       
- __      __      __ | |       \ \/ /   | (___
- \ \    /  \    / / | |        \ \/     \___ \
-  \ \  / /\ \  / /  | |        /\ \         ) |
-   \ \/ /  \ \/ /   | |___/|  / /\ \    ____/ /
-    \__/    \__/    |______| /_/  \_\  |_____/                     
-                               
-";
-        // ,"onRequest":null,"onHandShake":null,"onMessage":null,"onOpen":null,"host":"0.0.0.0","port":9566,"type":1,"sock":3,"setting":{"worker_num":8,"daemonize"
-        // :false,"max_request":10000,"dispatch_mode":2,"debug_mode":1}}],"master_pid":20427,"manager_pid":20428,"worker_id":0,"taskworker":false,"worker_pid":0}
-        
-        $run_log .= Logger::getInstance()->fetch(implode('|', [
-            $server->master_pid,
-            $server->manager_pid,
-            $server->port
-        ])) . "\n";
-        Logger::getInstance()->write($run_log, 'server');
-        echo "Server is started:[" . date("Y-m-d H:i:s") . "]\n";
-        echo "host[{$server->host}],port[{$server->port}],process[{$server->setting['worker_num']}],max_request[{$server->setting['max_request']}]\n";
-        echo "Pid[{$server->master_pid}] is stored in {$server->setting['pid_file']}\n";
-        fwrite(STDOUT, "Process is started\n");
     }
 
     public static function onShutdown($server)
@@ -160,7 +181,17 @@ class Server
         if (is_file($pidFile)) {
             unlink($pidFile);
         }
-        echo 'Server has been shutdown [' . date("Y-m-d H:i:s") . "]\n";
+        $serverInfo = implode('|', [
+            $server->master_pid,
+            $server->manager_pid,
+            $server->port,
+            $server->setting['worker_num'],
+            $server->setting['max_request'],
+            $server->setting['pid_file']
+        
+        ]);
+        // 记录服务器关闭信息
+        fwrite(STDOUT, 'SERVER_STOP|' . date("Y-m-d H:i:s") . '|' . $serverInfo . "\n");
     }
 
     public static function onWorkerStart($server, $worker_id)
