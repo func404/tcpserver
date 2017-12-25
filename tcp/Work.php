@@ -276,7 +276,6 @@ class Work
         }
         
         $transactionNumber = $device->current_data;
-        $moreValues = $lessValues = [];
         $closeTags = $bytes->getTransactionTags();
         
         if ($closeTags['is_last'] == 1) {
@@ -301,7 +300,7 @@ class Work
             $lessTags = array_unique($closeTags['less']);
             
             $total = count($moreTags) + count($lessTags);
-            
+
             if ($total == 0) {
                 $responseData = $bytes->setSn($headers['sn'] ++)
                     ->response(Error::tagsNumberUnmatch)
@@ -318,7 +317,7 @@ class Work
             }
             if (! empty($lessTags)) {
                 foreach ($lessTags as $lessTag) {
-                    $lessValues[] = "('" . $lessTag . "', " . Config::action['shopping'] . "," . Config::direct['less'] . "," . $transactionNumber . "),";
+                    $inserts .= "('" . $lessTag . "', " . Config::action['shopping'] . "," . Config::direct['less'] . "," . $transactionNumber . "),";
                 }
             }
             $sql = rtrim($inserts, ',');
@@ -1104,7 +1103,9 @@ class Work
     private function send($server, $fd, $data, $close = false)
     {
         $rst = $server->send($fd, $data);
+        Logger::getInstance()->writeBin($data, 'response_debug');
         if ($close) {
+            Logger::getInstance()->writeBin($data, 'response_error');
             return $server->close($fd);
         }
         return $rst;

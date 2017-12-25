@@ -136,7 +136,7 @@ class Server
                 $requestArr['data'] = $bytes->getRequestData();
                 $logArr = array_merge($client, $requestArr);
                 Cache::getInstance()->publish(Config::broadcastChannels['request'], json_encode($logArr));
-                if ($$headers['command'] != 0x02) {
+                if ($headers['command'] != 0x02) {
                     Logger::getInstance()->write(json_encode($logArr).'|'.intval($rst), 'device_request');
                 }
                 return $rst;

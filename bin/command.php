@@ -37,7 +37,7 @@ if (! array_key_exists($do, $commands)) {
 // 'REFRESH' => 'orderRefresh', // 0x0e
 // 'STATUS' => 'orderStatus', // 0x0e
 // 'CLOSE' => 'orderClose' /* 关闭客户端连接 */
-$device_id = 1000000002;
+$device_id = 1000000001;
 $data = [];
 switch ($do) {
     case 'SHOPPING':
@@ -68,21 +68,21 @@ function doShopping()
         'login_id' => 9,
         'status' => 0,
         'action' => 'shopping',
-        'device_id' => 1000000002,
+        'device_id' => 1000000001,
         'open_time' => date("Y-m-d H:i:s")
     ], true);
     
     lib\DB::getInstance()->insert('wl_device_orders', [
         'device_door_log_id' => $doorID,
-        'order_id' => 1000000002,
+        'order_id' => 1000000001,
         'created_time' => date("Y-m-d H:i:s")
     ], true);
-    // {\"command\":\"SHOPPING\",\"data\":{\"device_id\":\"1000000002\",\"transaction_number\":1000000104}}"
+    // {\"command\":\"SHOPPING\",\"data\":{\"device_id\":\"1000000001\",\"transaction_number\":1000000104}}"
     
     return [
         'command' => 'SHOPPING',
         'data' => [
-            'device_id' => 1000000002,
+            'device_id' => 1000000001,
             'transaction_number' => $doorID
         ]
     ];
@@ -91,14 +91,14 @@ function doShopping()
 function doInventory()
 {
    $inventoryId = lib\DB::getInstance()->insert('wl_device_inventory_logs',[
-       'device_id'=>1000000002,
+       'device_id'=>1000000001,
        'created_time'=>date("Y-m-d H:i:s"),
     ],true);
 
     return [
         'command' => 'INVENTORY',
         'data' => [
-            'device_id' => 1000000002,
+            'device_id' => 1000000001,
             'transaction_number' => $inventoryId
         ]
     ];
@@ -108,7 +108,7 @@ function doInventory()
  function doRefresh()
 {
     $refreshId =lib\DB::getInstance()->insert('wl_device_refresh_logs',[
-       'device_id'=>1000000002,
+       'device_id'=>1000000001,
        'created_time'=>date("Y-m-d H:i:s"),
     ],true);
 
@@ -116,7 +116,7 @@ function doInventory()
     return [
         'command' => 'REFRESH',
         'data' => [
-            'device_id' => 1000000002,
+            'device_id' => 1000000001,
             'transaction_number' => $refreshId
         ]
     ];
