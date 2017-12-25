@@ -1,5 +1,5 @@
 <?php
-namespace tcp;
+namespace lib;
 
 abstract class Structure implements \ArrayAccess
 {
