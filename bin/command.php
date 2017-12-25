@@ -9,12 +9,13 @@ $cache = Cache::getInstance();
 $ch = Config::broadcastChannels['client'];
 $commands = Config::orderMap;
 if ($argc < 2) {
-    fwrite(STDOUT, "Please choose command: ");
+    fwrite(STDOUT, "Please choose command: \n");
     $i = 1;
     $tmp = [];
     foreach ($commands as $key => $value) {
-        fwrite(STDOUT, "$i ): $key,$value");
+        fwrite(STDOUT, "$i ): $key,$value\n");
         $tmp[$i] = $key;
+        $i++;
     }
     $j = trim(fgets(STDIN));
     $do = strtoupper($tmp[$j]);
@@ -51,16 +52,19 @@ switch ($do) {
     case 'REFRESH':
         break;
     case 'STATUS':
+        $data = doStatus();
         break;
     case 'CLOSE':
         break;
 }
-
+print_r($data);
 function doShopping()
 {
     $orderId = time();
-    $doorID = DB::getInstance()->insert('wl_device_door_logs', [
+$doorID=    DB::getInstance()->insert('wl_device_door_logs', [
         'login_id' => 9,
+        'status'=>0,
+        'action'=>'shopping',
         'device_id' => 1000000002,
         'open_time' => date("Y-m-d H:i:s")
     ], true);
