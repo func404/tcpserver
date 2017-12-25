@@ -979,11 +979,10 @@ class Byte
     public function getInventorySummary()
     {
         return (array) [
-            'transaction_number' => $this->bytes2str(array_slice($this->load, 0, 10)),
-            'status' => $this->bigBytes2int(array_slice($this->load, 10, 1)),
-            'count' => $this->bigBytes2int(array_slice($this->load, 11, 2)),
-            'status' => $this->bigBytes2int(array_slice($this->load, 13, 4))
-        ];
+            'status' => $this->bigBytes2int(array_slice($this->load, 0, 1)),
+            'count' => $this->bigBytes2int(array_slice($this->load, 1, 2)),
+            'weight' => $this->bigBytes2int(array_slice($this->load, 3, 4)),
+            'transaction_number' => $this->bytes2str(array_slice($this->load,7,10))];
     }
 
     /**
@@ -1028,9 +1027,7 @@ class Byte
             'is_last' => $isLast
         ];
     }
-    
-    
-    
+
     /**
      * 服务器端发给客户端的 请求刷新盘存
      *
@@ -1045,7 +1042,7 @@ class Byte
             'transaction_number' => $this->bytes2str(array_slice($this->load, 0, 10))
         ];
     }
-    
+
     /**
      * 客户端发给服务器 盘存汇总
      *
@@ -1066,7 +1063,7 @@ class Byte
             'transaction_number' => $this->bytes2str(array_slice($this->load, 7, 10))
         ];
     }
-    
+
     /**
      * 客户端发给服务器端的盘存标签集合
      *
