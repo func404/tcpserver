@@ -592,7 +592,7 @@ class Work
         }
         $transactionNumber = $device->current_data;
         $inventoryTags = $bytes->getInventoryTags();
-        $total = Cache::getInstance()->hSet(Config::caches['inventory_count'], $device->device_id . '_' . $transactionNumber);
+        $total = Cache::getInstance()->hGet(Config::caches['inventory_count'], $device->device_id . '_' . $transactionNumber);
         
         if ($inventoryTags['is_last'] == 1) {
             $tags = Cache::getInstance()->hGet(Config::caches['inventory_tags'], $device->device_id . '_' . $transactionNumber);
