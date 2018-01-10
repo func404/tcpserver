@@ -7,7 +7,7 @@ namespace tcp;
 use lib\Cache;
 use config\Config;
 use config\Error;
-use config\DB;
+use lib\DB;
 
 class Timer
 {
