@@ -73,7 +73,8 @@ class DB
 
     public function query($sql)
     {
-        return mysqli_query(self::$link, $sql);
+        # return mysqli_query(self::$link, $sql) or (error_log(mysqli_error()."\n",3,'/tmp/mysql_error'));
+         return self::$link->query($sql);// or (error_log(mysqli_error()."\n",3,'/tmp/mysql_error'));
     }
 
     public function getInsertId()
