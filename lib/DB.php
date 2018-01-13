@@ -14,7 +14,7 @@ class DB
 
     public function __construct()
     {
-        if (! self::$link) {
+        if (! self::$link or  self::$link->get_connection_stats()) {
             self::$link = mysqli_connect(Config::db['host'], Config::db['user'], Config::db['pass'], Config::db['libr'], Config::db['port']);
             mysqli_query(self::$link, 'set names ' . Config::db['charset']);
         }
