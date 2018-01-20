@@ -14,16 +14,14 @@ class DB
 
     public function __construct()
     {
-        if (! self::$link or  self::$link->get_connection_stats()) {
-            self::$link = mysqli_connect(Config::db['host'], Config::db['user'], Config::db['pass'], Config::db['libr'], Config::db['port']);
-            mysqli_query(self::$link, 'set names ' . Config::db['charset']);
-        }
+        self::$link = mysqli_connect(Config::db['host'], Config::db['user'], Config::db['pass'], Config::db['libr'], Config::db['port']);
+        mysqli_query(self::$link, 'set names ' . Config::db['charset']);
         $this->datetime = date("Y-m-d H:i:s");
     }
 
     public static function getInstance()
     {
-        if (! (self::$instance instanceof self) or !self::$link or !self::$link->get_connection_stats()) {
+        if (! (self::$instance instanceof self) or ! self::$link or ! self::$link->get_connection_stats()) {
             self::$instance = new self();
         }
         return self::$instance;
@@ -57,24 +55,10 @@ class DB
         return $this->insert('wl_device_login_logs', $data, true);
     }
 
-    public function loginTags($tags = [], $loginId)
-    {
-        $data = [
-            'device_id' => 100000001,
-            'device_number' => 'acd2323aaaad223232232334',
-            'login_ip' => CLIENT['remote_ip'],
-            'tags' => 0,
-            'weight' => 0,
-            'connect_time' => date("Y-m-d H:i:s", CLIENT['connect_time']),
-            'login_time' => $this->datetime
-        ];
-        return $this->insert('wl_device_login_logs', $data);
-    }
-
     public function query($sql)
     {
-        # return mysqli_query(self::$link, $sql) or (error_log(mysqli_error()."\n",3,'/tmp/mysql_error'));
-         return self::$link->query($sql);// or (error_log(mysqli_error()."\n",3,'/tmp/mysql_error'));
+        // return mysqli_query(self::$link, $sql) or (error_log(mysqli_error()."\n",3,'/tmp/mysql_error'));
+        return self::$link->query($sql); // or (error_log(mysqli_error()."\n",3,'/tmp/mysql_error'));
     }
 
     public function getInsertId()
