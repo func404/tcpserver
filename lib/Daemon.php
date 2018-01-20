@@ -34,6 +34,7 @@ class Daemon
             $pid = trim(fgets($handle));
             fclose($handle);
         } else {
+            $handle = fopen($this->pidFile, 'w');
             $pid = 0;
         }
         
