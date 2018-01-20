@@ -234,9 +234,9 @@ class Work
             ]);
             
             if ($device->current_transaction == 'shopping') {
-                CH::pubShopping($transactionNumber);
+                CH::pubShopping($device->device_id, $transactionNumber);
             } else {
-                CH::pubStore($transactionNumber);
+                CH::pubStore($device->device_id, $transactionNumber);
             }
             
             // 更新client
@@ -330,9 +330,9 @@ class Work
             
             // 发送通知
             if ($device->current_transaction == 'shopping') {
-                CH::pubShopping($transactionNumber);
+                CH::pubShopping($device->device_id, $transactionNumber);
             } else {
-                CH::pubStore($transactionNumber);
+                CH::pubStore($device->device_id, $transactionNumber);
             }
             
             // 释放设备
@@ -559,7 +559,7 @@ class Work
         
         if ($inventoryInfo['count'] == 0) {
             // 发送结束标记
-            CH::pubInventory($transactionNumber);
+            CH::pubInventory($device->device_id, $transactionNumber);
             $this->freeDevice($device);
         } else {
             // 缓存标签变化数量
@@ -646,7 +646,7 @@ class Work
             Cache::getInstance()->hDel(Config::caches['inventory_count'], $device->device_id . '_' . $transactionNumber);
             
             // 发送结束标记
-            CH::pubInventory($transactionNumber);
+            CH::pubInventory($device->device_id, $transactionNumber);
         } else {
             $tags = Cache::getInstance()->hGet(Config::caches['inventory_tags'], $device->device_id . '_' . $transactionNumber);
             if ($tags) {
@@ -716,7 +716,7 @@ class Work
         
         if ($refreshInfo['count'] == 0) {
             // 发送结束标记
-            CH::pubRefresh($transactionNumber);
+            CH::pubRefresh($device->device_id, $transactionNumber);
             $this->freeDevice($device);
         } else {
             // 缓存标签变化数量
@@ -793,7 +793,7 @@ class Work
             Cache::getInstance()->hDel(Config::caches['refresh_count'], $device->device_id . '_' . $transactionNumber);
             
             // 发送结束标记
-            CH::pubRefresh($transactionNumber);
+            CH::pubRefresh($device->device_id, $transactionNumber);
         } else {
             $tags = Cache::getInstance()->hGet(Config::caches['refresh_tags'], $device->device_id . '_' . $transactionNumber);
             if ($tags) {
@@ -1022,7 +1022,7 @@ class Work
         } else {
             return $server->close($device->fd);
         }
-        CH::pubClose($data['transaction_number']);
+        CH::pubClose($device->device_id, $data['transaction_number']);
     }
 
     /**

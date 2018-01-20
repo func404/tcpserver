@@ -29,40 +29,52 @@ final class CH
         return Cache::getInstance()->publish($ch, $message);
     }
 
-    public static function pubShopping($transaction_number)
+    public static function pubShopping($device_id, $transaction_number)
     {
         $ch = self::SHOPPING;
-        return self::pub($ch, $transaction_number);
+        return self::pub($ch, json_encode([
+            'device_id' => $device_id,
+            'transaction_number' => $transaction_number
+        ]));
     }
 
-    public static function pubStore($transaction_number)
+    public static function pubStore($device_id, $transaction_number)
     {
         $ch = self::STORE;
-        return self::pub($ch, $transaction_number);
+        return self::pub($ch, json_encode([
+            'device_id' => $device_id,
+            'transaction_number' => $transaction_number
+        ]));
     }
 
-    public static function pubInventory($transaction_number)
+    public static function pubInventory($device_id, $transaction_number)
     {
         $ch = self::INVERTORY;
         return self::pub($ch, $transaction_number);
     }
 
-    public static function pubRefresh($transaction_number)
+    public static function pubRefresh($device_id, $transaction_number)
     {
         $ch = self::REFRESH;
-        return self::pub($ch, $transaction_number);
+        return self::pub($ch, json_encode([
+            'device_id' => $device_id,
+            'transaction_number' => $transaction_number
+        ]));
     }
 
-    public static function pubStatus($transaction_number)
+    public static function pubStatus($device_id, $transaction_number)
     {
         $ch = self::STATUS;
         return self::pub($ch, $transaction_number);
     }
 
-    public static function pubClose($transaction_number)
+    public static function pubClose($device_id, $transaction_number)
     {
         $ch = self::CLOSE;
-        return self::pub($ch, $transaction_number);
+        return self::pub($ch, json_encode([
+            'device_id' => $device_id,
+            'transaction_number' => $transaction_number
+        ]));
     }
 }
 

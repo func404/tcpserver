@@ -1,3 +1,6 @@
+<?php
+use lib\Queue;
+?>
 #!/usr/bin/php
 <?php
 /**
@@ -33,14 +36,26 @@ class Client
 
     private static $instance;
 
-    private $cli;
+    private static $api;
+    
+    private static $queue;
+
+    private static $channels = [
+        'wlxs_clientChannel',
+        'WLXS_SHOPPING',
+        'WLXS_STORE',
+        'WLXS_INVENTORY',
+        'WLXS_REFRESH',
+        'WLXS_STATUS',
+        'WLXS_CLOSE'
+    ];
 
     public function __construct()
     {
         ;
     }
 
-    public static function getInstance($reconnect = false)
+    public static function getInstance()
     {
         if (! self::$instance) {
             self::$instance = new self();
@@ -57,6 +72,25 @@ class Client
         return self::$client;
     }
 
+    public function getApi()
+    {
+        if (! self::$api) {
+            include_once '../lib/Api.php';
+            include_once '../lib/RestfulClient.php';
+            self::$api = new lib\Api();
+        }
+        return self::$api;
+    }
+    
+    public function getQueue(){
+        
+        if (! self::$queue) {
+            include_once '../lib/Queue.php';
+            self::$queue = new lib\Api();
+        }
+        return self::$queue;
+    }
+
     public function run()
     {
         $redis = new \Redis();
@@ -64,17 +98,41 @@ class Client
         $redis->auth(REDIS_AUTH);
         $redis->setOption(\Redis::OPT_READ_TIMEOUT, - 1);
         $client = self::getInstance();
-        $redis->subscribe([
-            'wlxs_clientChannel',
-            'wlxs_serverChannel'
-        ], function ($i, $channel, $message) use ($client) {
+        $redis->subscribe(self::$channels, function ($i, $channel, $message) use ($client) {
             switch ($channel) {
                 case 'wlxs_clientChannel':
                     $client = $client->getClient();
                     $rst = $client->send($message);
+                    return true;
                     break;
-                case 'wlxs_serverChannel':
-                    dealServer($message);
+                case 'WLXS_SHOPPING':
+                    $api = $client->getApi();
+                    $data = json_decode($message);
+                    $rst = $api->deviceCloseDoor($data->device_id,$data->transaction_number);
+                    break;
+                case 'WLXS_STORE':
+                    $api = $client->getApi();
+                    $data = json_decode($message);
+                    $rst = $api->deviceCloseDoor($data->device_id,$data->transaction_number);
+                    break;
+                case 'WLXS_INVENTORY':
+                    $api = $client->getApi();
+                    $data = json_decode($message);
+                    $rst = $api->deviceCloseDoor($data->device_id,$data->transaction_number);
+                    break;
+                case 'WLXS_REFRESH':
+                    $api = $client->getApi();
+                    $data = json_decode($message);
+                    $rst = $api->deviceCloseDoor($data->device_id,$data->transaction_number);
+                    break;
+                case 'WLXS_STATUS':
+                    $api = $client->getApi();
+                    $rst = $api->deviceCloseDoor(message);
+                    break;
+                case 'WLXS_CLOSE':
+                    $api = $client->getApi();
+                    $data = json_decode($message);
+                    $rst = $api->deviceCloseDoor($data->device_id,$data->transaction_number);
                     break;
                 default:
                     break;
@@ -83,15 +141,3 @@ class Client
     }
 }
 Client::getInstance()->run();
-
-/**
- * 处理客户端。API发来的请求
- *
- * @param Swoole $client            
- * @param String $message            
- */
-function dealClient($client, $message)
-{
-    $client->send($message);
-    $rst = $client->recv();
-}
