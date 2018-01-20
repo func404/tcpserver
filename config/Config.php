@@ -61,7 +61,7 @@ final class Config
     ];
 
     const db = [
-        'host' => '127.0.0.1',
+        'host' => 'p:127.0.0.1',
         'port' => 3306,
         'user' => 'wlxs',
         'pass' => '!@#qweASD2017',

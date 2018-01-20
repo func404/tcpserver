@@ -23,7 +23,7 @@ class DB
 
     public static function getInstance()
     {
-        if (! (self::$instance instanceof self)) {
+        if (! (self::$instance instanceof self) or !self::$link or !self::$link->get_connection_stats()) {
             self::$instance = new self();
         }
         return self::$instance;

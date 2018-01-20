@@ -183,6 +183,7 @@ class Server
 
     public static function onShutdown($server)
     {
+        Cache::getInstance()->del(Config::caches['connections']);
         $content = 'Server has been shutdown [' . date("Y-m-d H:i:s") . "]\n";
         Logger::getInstance()->write($content, 'server');
         $pidFile = $server->setting['pid_file'];
