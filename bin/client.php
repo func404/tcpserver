@@ -1,6 +1,3 @@
-<?php
-use lib\Queue;
-?>
 #!/usr/bin/php
 <?php
 /**
@@ -137,6 +134,7 @@ class Client
                 default:
                     break;
             }
+var_dump($rst);
         });
     }
 }
