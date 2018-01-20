@@ -202,7 +202,11 @@ class Api
 
     public function deviceCloseDoor($device_id, $transaction_number)
     {
-        ;
+        return self::$rest->post([
+            'token' => self::$token,
+            'device_id' => $device_id,
+            'transaction_number' => $transaction_number
+        ], self::$base_url . '/device/close')->getResponseBody();
     }
 
     /**
