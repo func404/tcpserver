@@ -8,7 +8,7 @@ class Daemon
 
     private $processTitle = '';
 
-    public function __construct($process_title, $pid_file)
+    public function __construct($process_title, $pid_file=0)
     {
         if ($process_title) {
             $this->processTitle = $process_title;
@@ -51,7 +51,7 @@ class Daemon
                 } else {
                     fwrite(STDOUT, 'Pid is not exists: ' . $pid . "\n");
                 }
-                $handle = fopen(PID_FILE, 'w');
+                $handle = fopen($this->pidFile, 'w');
                 fclose($handle);
                 exit();
             } else {
@@ -75,6 +75,7 @@ class Daemon
             }
             // get input
         }
+        cli_set_process_title($this->processTitle);
         
         $pid = pcntl_fork();
         if (- 1 === $pid) {
@@ -92,6 +93,7 @@ class Daemon
         } elseif (0 !== $pid) {
             exit(0);
         }
+
         $handle = fopen($this->pidFile, 'w');
         fwrite($handle, posix_getpid());
         fclose($handle);

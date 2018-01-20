@@ -68,7 +68,9 @@ class Server
         
         if (in_array($client['remote_ip'], Config::ipAllow)) {
             $commands = Config::orderMap;
-            var_dump($data); 
+            if($data == 1){
+                return true;
+            }
             $headers = json_decode($data, true);
             if (! $headers) {
                 $server->close($fd);

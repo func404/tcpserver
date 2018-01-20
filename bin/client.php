@@ -14,10 +14,9 @@ define('REDIS_AUTH', '!@#qweASD2017');
 define('TCP_HOST', '118.190.205.103');
 define('TCP_PORT', 9888);
 
-// define('DAEMONIZE', true);
-define('DAEMONIZE', false);
-define('PID_FILE', '/var/run/wlxs_listener.pid');
-define('PID_NAME', 'listener');
+define('DAEMONIZE', true);
+define('PID_FILE', 'wlxs_listener');
+define('PID_NAME', 'wlxs_listener');
 if (php_sapi_name() != "cli") {
     die("Only run in command line mode\n");
 }
@@ -51,24 +50,11 @@ class Client
 
     public function getClient()
     {
-        if (! self::$client || ! self::$client->isConnected()) {
+        if (! self::$client || ! self::$client->isConnected() || ! self::$client->send(1)) {
             self::$client = new \swoole_client(SWOOLE_TCP | SWOOLE_KEEP);
             self::$client->connect(TCP_HOST, TCP_PORT, - 1);
         }
         return self::$client;
-    }
-
-    public function send($message)
-    {
-        if (self::$client->send($message)) {
-            return self::$client->recv();
-        } else {
-            if (self::getInstance(true)->send($message)) {
-                return self::$client->recv();
-            } else {
-                return false;
-            }
-        }
     }
 
     public function run()
@@ -77,15 +63,15 @@ class Client
         $redis->pconnect(REDIS_HOST, REDIS_PORT, 0);
         $redis->auth(REDIS_AUTH);
         $redis->setOption(\Redis::OPT_READ_TIMEOUT, - 1);
-        $client = $this->getClient();
+        $client = self::getInstance();
         $redis->subscribe([
             'wlxs_clientChannel',
             'wlxs_serverChannel'
         ], function ($i, $channel, $message) use ($client) {
             switch ($channel) {
                 case 'wlxs_clientChannel':
+                    $client = $client->getClient();
                     $rst = $client->send($message);
-                    var_dump($rst);
                     break;
                 case 'wlxs_serverChannel':
                     dealServer($message);
@@ -96,6 +82,7 @@ class Client
         });
     }
 }
+Client::getInstance()->run();
 
 /**
  * 处理客户端。API发来的请求
