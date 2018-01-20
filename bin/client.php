@@ -14,7 +14,7 @@ define('REDIS_AUTH', '!@#qweASD2017');
 define('TCP_HOST', '118.190.205.103');
 define('TCP_PORT', 9888);
 
-#define('DAEMONIZE', true);
+// define('DAEMONIZE', true);
 define('DAEMONIZE', false);
 define('PID_FILE', '/var/run/wlxs_listener.pid');
 define('PID_NAME', 'listener');
@@ -24,53 +24,38 @@ if (php_sapi_name() != "cli") {
 
 if (DAEMONIZE) {
     include '../lib/Daemon.php';
-    lib\Daemon::run(PID_FILE, PID_NAME)->init($argc,$argv);
-}
-$redis = new \Redis();
-$redis->pconnect(REDIS_HOST, REDIS_PORT, 0);
-$redis->auth(REDIS_AUTH);
-$redis->setOption(\Redis::OPT_READ_TIMEOUT, - 1);
-$redis->subscribe([
-    'wlxs_clientChannel',
-    'wlxs_serverChannel'
-], function ($i, $channel, $message) {
-    switch ($channel) {
-        case 'wlxs_clientChannel':
-           $rst= Client::getInstance()->send($message);
-           var_dump($rst);
-            break;
-        case 'wlxs_serverChannel':
-            dealServer($message);
-            break;
-        default:
-            break;
-    }
-});
-
-/**
- * 处理TCP发送的请求
- *
- * @param sting $message            
- */
-function dealServer($message)
-{
-    error_log($message . "\n", 3, "/tmp/dx1222.log");
-    echo $message . "\n";
+    lib\Daemon::run(PID_NAME, PID_FILE)->init($argc, $argv);
 }
 
 class Client
 {
 
     private static $client;
+
     private static $instance;
 
-    public static function  getInstance($reconnect = false)
+    private $cli;
+
+    public function __construct()
     {
-         
-        if (! self::$client or $reconnect) {
+        ;
+    }
+
+    public static function getInstance($reconnect = false)
+    {
+        if (! self::$instance) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
+    public function getClient()
+    {
+        if (! self::$client || ! self::$client->isConnected()) {
             self::$client = new \swoole_client(SWOOLE_TCP | SWOOLE_KEEP);
             self::$client->connect(TCP_HOST, TCP_PORT, - 1);
         }
+        return self::$client;
     }
 
     public function send($message)
@@ -78,12 +63,37 @@ class Client
         if (self::$client->send($message)) {
             return self::$client->recv();
         } else {
-            if(self::getInstance(true)->send($message)){
+            if (self::getInstance(true)->send($message)) {
                 return self::$client->recv();
-            }else {
+            } else {
                 return false;
             }
         }
+    }
+
+    public function run()
+    {
+        $redis = new \Redis();
+        $redis->pconnect(REDIS_HOST, REDIS_PORT, 0);
+        $redis->auth(REDIS_AUTH);
+        $redis->setOption(\Redis::OPT_READ_TIMEOUT, - 1);
+        $client = $this->getClient();
+        $redis->subscribe([
+            'wlxs_clientChannel',
+            'wlxs_serverChannel'
+        ], function ($i, $channel, $message) use ($client) {
+            switch ($channel) {
+                case 'wlxs_clientChannel':
+                    $rst = $client->send($message);
+                    var_dump($rst);
+                    break;
+                case 'wlxs_serverChannel':
+                    dealServer($message);
+                    break;
+                default:
+                    break;
+            }
+        });
     }
 }
 
