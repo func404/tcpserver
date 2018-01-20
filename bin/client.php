@@ -14,7 +14,8 @@ define('REDIS_AUTH', '!@#qweASD2017');
 define('TCP_HOST', '118.190.205.103');
 define('TCP_PORT', 9888);
 
-define('DAEMONIZE', true);
+#define('DAEMONIZE', true);
+define('DAEMONIZE', false);
 define('PID_FILE', '/var/run/wlxs_listener.pid');
 define('PID_NAME', 'listener');
 if (php_sapi_name() != "cli") {
@@ -23,7 +24,7 @@ if (php_sapi_name() != "cli") {
 
 if (DAEMONIZE) {
     include '../lib/Daemon.php';
-    lib\Daemon::run(PID_FILE, PID_NAME);
+    lib\Daemon::run(PID_FILE, PID_NAME)->init($argc,$argv);
 }
 $redis = new \Redis();
 $redis->pconnect(REDIS_HOST, REDIS_PORT, 0);
@@ -35,7 +36,8 @@ $redis->subscribe([
 ], function ($i, $channel, $message) {
     switch ($channel) {
         case 'wlxs_clientChannel':
-            Client::getInstance()->send($message);
+           $rst= Client::getInstance()->send($message);
+           var_dump($rst);
             break;
         case 'wlxs_serverChannel':
             dealServer($message);
@@ -60,14 +62,15 @@ class Client
 {
 
     private static $client;
+    private static $instance;
 
     public static function  getInstance($reconnect = false)
     {
+         
         if (! self::$client or $reconnect) {
             self::$client = new \swoole_client(SWOOLE_TCP | SWOOLE_KEEP);
             self::$client->connect(TCP_HOST, TCP_PORT, - 1);
         }
-        return $this;
     }
 
     public function send($message)

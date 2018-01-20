@@ -16,7 +16,7 @@ class Daemon
             $this->processTitle = __FILE__;
         }
         if ($pid_file) {
-            $this->pidFile = '/var/run/' . $pid_file;
+            $this->pidFile = '/var/run/' . $pid_file .'.pid';
         } else {
             $this->pidFile = '/var/run/' . $this->process_title . '.pid';
         }
@@ -27,17 +27,15 @@ class Daemon
         return new self($process_title, $pid_file);
     }
 
-    public function init()
+    public function init($argc,$argv)
     {
         if (file_exists($this->pidFile)) {
-            $handle = fopen($this->pidFile, 'r');
-            $pid = trim(fgets($handle));
-            fclose($handle);
+            $pid = trim(file_get_contents($this->pidFile));
         } else {
             $handle = fopen($this->pidFile, 'w');
             $pid = 0;
+            fclose($handle);
         }
-        
         if ($argc < 2) {
             $action = 'start';
         } else {
@@ -94,7 +92,7 @@ class Daemon
         } elseif (0 !== $pid) {
             exit(0);
         }
-        $handle = fopen(PID_FILE, 'w');
+        $handle = fopen($this->pidFile, 'w');
         fwrite($handle, posix_getpid());
         fclose($handle);
         fwrite(STDOUT, 'Process is running ' . $this->processTitle . '  ' . posix_getpid() . "\n");
