@@ -1020,6 +1020,7 @@ class Work
         if (! $device) {
             return false;
         } else {
+            $device = json_decode($device);
             return $server->close($device->fd);
         }
         CH::pubClose($device->device_id, $data['transaction_number']);
