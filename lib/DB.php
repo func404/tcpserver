@@ -21,7 +21,7 @@ class DB
 
     public static function getInstance()
     {
-        if (! (self::$instance instanceof self) or ! self::$link or ! self::$link->get_connection_stats()) {
+        if (! (self::$instance instanceof self) or ! self::$link or ! self::$link->get_connection_stats() or ! self::$link->ping()) {
             self::$instance = new self();
         }
         return self::$instance;
