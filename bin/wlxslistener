@@ -95,3 +95,13 @@ function dealClient($client, $message)
     $client->send($message);
     $rst = $client->recv();
 }
+/**
+ * 处理客户端。API发来的请求
+ *
+ * @param message            
+ * @param String $message            
+ */
+function dealServer($message)
+{
+    $client->send($message);
+    $rst = $client->recv();
