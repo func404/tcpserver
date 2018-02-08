@@ -153,11 +153,12 @@ class Api
         ], self::$base_url . '/order/createandopendoor')->getResponseBody();
     }
 
-    public function closeDoorAndPay($order_id)
+    public function closeDoorAndPay($device_id, $transaction_number)
     {
         return self::$rest->post([
             'token' => self::$token,
-            'order_id' => $order_id
+            'device_id' => $device_id,
+            'transaction_number' => $transaction_number
         ], self::$base_url . '/order/closedoorandpay')->getResponseBody();
     }
 

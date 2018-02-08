@@ -66,15 +66,16 @@ class Client
         $client = self::getInstance();
         $redis->subscribe([
             'wlxs_clientChannel',
-            'wlxs_serverChannel'
+            'wlxs_serverChannel',
+            'WLXS_SHOPPING',
         ], function ($i, $channel, $message) use ($client) {
             switch ($channel) {
                 case 'wlxs_clientChannel':
                     $client = $client->getClient();
                     $rst = $client->send($message);
                     break;
-                case 'wlxs_serverChannel':
-                    dealServer($message);
+                case 'WLXS_SHOPPING':
+                    dealShopping($message);
                     break;
                 default:
                     break;
@@ -101,7 +102,12 @@ function dealClient($client, $message)
  * @param message            
  * @param String $message            
  */
-function dealServer($message)
+function dealShopping($message)
 {
-    $client->send($message);
-    $rst = $client->recv();
+    include_once '../lib/RestfulClient.php';
+    include_once '../lib/Api.php';
+    $api = lib\Api::getInstance();
+    $m = json_decode($message);
+    $rst = $api->closeDoorAndPay($m->device_id, $m->transaction_number);
+    error_log($message."\t".$rst,3,'/tmp/close_'.date("Ymd").'.log');
+}
