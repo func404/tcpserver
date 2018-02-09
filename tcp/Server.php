@@ -68,7 +68,7 @@ class Server
         
         if (in_array($client['remote_ip'], Config::ipAllow)) {
             $commands = Config::orderMap;
-            if($data == 1){
+            if ($data == 1) {
                 return true;
             }
             $headers = json_decode($data, true);
@@ -92,6 +92,11 @@ class Server
             $commands = Config::serverMap;
             $bytes = (new Byte())->unpack($data);
             $headers = $bytes->headers;
+            
+            $length = strlen($data);
+            $decArr = unpack('C' . $length, $data);
+            $tmpdata = implode(',', $decArr);
+            Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'] . ':' . $client['remote_port'] . ':' . $tmpdata, 'client');
             
             // 验证请求头
             foreach ($headers as $header) {
@@ -139,10 +144,9 @@ class Server
                 $logArr = array_merge($client, $requestArr);
                 Cache::getInstance()->publish(Config::broadcastChannels['request'], json_encode($logArr));
                 if ($headers['command'] != 0x02) {
-                    Logger::getInstance()->write(json_encode($logArr).'|'.intval($rst), 'device_request');
+                    Logger::getInstance()->write(json_encode($logArr) . '|' . intval($rst), 'device_request');
                 }
                 return $rst;
-                
             } else {
                 if ($headers['flags'] == 1) {
                     return true;
@@ -158,7 +162,6 @@ class Server
                     return false;
                 }
             }
-            
         }
     }
 
