@@ -160,6 +160,13 @@ class Byte
         
         $return['length'] = $this->length = hexdec(dechex($decArr[3]) . dechex($decArr[4]));
         
+        $packageCount = count($decArr) / ($this->length + 4);
+        
+        if ($packageCount > 1) {
+            $decArr = array_slice($decArr, 0, $this->length + 4);
+            $this->requestData = implode(',', $decArr);
+        }
+        
         $return['command'] = $this->command = $decArr[5];
         
         $return['sn'] = $this->sn = $decArr[6];
@@ -982,7 +989,8 @@ class Byte
             'status' => $this->bigBytes2int(array_slice($this->load, 0, 1)),
             'count' => $this->bigBytes2int(array_slice($this->load, 1, 2)),
             'weight' => $this->bigBytes2int(array_slice($this->load, 3, 4)),
-            'transaction_number' => $this->bytes2str(array_slice($this->load,7,10))];
+            'transaction_number' => $this->bytes2str(array_slice($this->load, 7, 10))
+        ];
     }
 
     /**
