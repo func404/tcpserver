@@ -95,6 +95,7 @@ function dealClient($client, $message)
 {
     $client->send($message);
     $rst = $client->recv();
+    error_log($message."\t".var_export($rst,1)."\n",3,'/tmp/send_'.date("Ymd").'.log');
 }
 /**
  * 处理客户端。API发来的请求
@@ -109,5 +110,5 @@ function dealShopping($message)
     $api = lib\Api::getInstance();
     $m = json_decode($message);
     $rst = $api->closeDoorAndPay($m->device_id, $m->transaction_number);
-    error_log($message."\t".$rst,3,'/tmp/close_'.date("Ymd").'.log');
+    error_log($message."\t".json_encode($rst)."\n",3,'/tmp/close_'.date("Ymd").'.log');
 }

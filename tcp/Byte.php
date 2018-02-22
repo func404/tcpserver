@@ -165,6 +165,7 @@ class Byte
         if ($packageCount > 1) {
             $decArr = array_slice($decArr, 0, $this->length + 4);
             $this->requestData = implode(',', $decArr);
+            $length = count($decArr);
         }
         
         $return['command'] = $this->command = $decArr[5];
