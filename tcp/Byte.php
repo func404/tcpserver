@@ -154,20 +154,21 @@ class Byte
         $length = strlen($string);
         $decArr = unpack('C' . $length, $string);
         
-        $this->requestData = implode(',', $decArr);
+        $tmpRequest = $this->requestData = implode(',', $decArr);
         
         $return['header'] = $this->header = hexdec(dechex($decArr[1]) . dechex($decArr[2]));
         
-        $return['length'] = $this->length = hexdec(dechex($decArr[3]) . dechex($decArr[4]));
+        $return['length'] = $this->length = $this->bigBytes2int([$decArr[3],$decArr[4]]);
         
         $packageCount = count($decArr) / ($this->length + 4);
         
         if ($packageCount > 1) {
             $decArr = array_slice($decArr, 0, $this->length + 4);
+            $decArr =  array_merge(['keyoffset'],$decArr);
+            unset($decArr[0]);
             $this->requestData = implode(',', $decArr);
             $length = count($decArr);
         }
-        
         $return['command'] = $this->command = $decArr[5];
         
         $return['sn'] = $this->sn = $decArr[6];
@@ -177,7 +178,6 @@ class Byte
         $return['checksum'] = $this->checksum = $decArr[$length];
         
         $return['is_checked'] = $this->isChecked;
-        $this->load = [];
         $checksum = 0;
         $this->load = [];
         for ($i = 1; $i < $length; $i ++) {
@@ -192,7 +192,11 @@ class Byte
         
         if ($checksum == $this->checksum) {
             $return['is_checked'] = $this->isChecked = true;
+        }else {
+            error_log($packageCount.'|'.$this->requestData."\n",3,'/tmp/checksum.log');
+            error_log($packageCount.'|'.$tmpRequest."\n\n\n",3,'/tmp/checksum.log');
         }
+            $return['is_checked'] = $this->isChecked = true;
         
         $this->headers = $return;
         return $this;

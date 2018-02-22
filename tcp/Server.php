@@ -106,6 +106,8 @@ class Server
                         ->pack();
                     Logger::getInstance()->write('PackageStructureError:' . Error::packageStructureError, 'error');
                     Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'] . ':' . $client['remote_port'], 'error');
+                    Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'] . ':' . $client['remote_port'] . ':' . $tmpdata, 'error');
+                    Logger::getInstance()->write(json_encode($headers), 'error');
                     $server->send($fd, $response);
                     $server->close($fd);
                     return false;

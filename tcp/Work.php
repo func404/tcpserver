@@ -71,9 +71,9 @@ class Work
             return $closeRst;
         }
         
-        if ($loginInfo['transaction_number']) { // 如果流水号存在
-            Cache::getInstance()->delete('');
-        }
+     //   if ($loginInfo['transaction_number']) { // 如果流水号存在
+     //       Cache::getInstance()->delete('');
+     //   }
         
         // 保存登录日志
         $loginId = DB::getInstance()->createLoginLog([
@@ -86,7 +86,6 @@ class Work
             'login_ip' => $client['remote_ip'],
             'login_time' => date("Y-m-d H:i:s")
         ]);
-        
         $clientDevice = new Device();
         $clientDevice->login_id = $loginId;
         $clientDevice->device_id = $device['device_id'];
@@ -108,6 +107,7 @@ class Work
             $clientDevice->current_transaction = 'shopping';
         }
         Cache::getInstance()->hSet(Config::caches['clients'], $device['device_id'], json_encode($clientDevice->toArray()));
+       error_log(json_encode($loginInfo)."\n",3,'/tmp/debug20180222.log'); 
         
         /*
          * 更新连接数
@@ -126,6 +126,7 @@ class Work
             $closeRst = $server->close($fd);
             return false;
         }
+       error_log($connection."\n",3,'/tmp/debug20180222.log'); 
         Cache::getInstance()->hSet(Config::caches['connections'], $fd, json_encode(array_merge(json_decode($connection, true), [
             'login_id' => $loginId,
             'device_id' => $device['device_id']
@@ -136,6 +137,12 @@ class Work
             Timer::class,
             'checkConnections'
         ], $server);
+        Cache::getInstance()->hSet(Config::caches['connections'], $fd, json_encode(array_merge(json_decode($connection, true), [
+            'login_id' => $loginId,
+            'device_id' => $device['device_id']
+        ])));
+       $connection2 = Cache::getInstance()->hGet(Config::caches['connections'], $fd);
+       error_log($connection2."\n",3,'/tmp/debug20180222.log'); 
         
         // 响应客户端
         $isSend = $server->send($fd, Byte::getInstance()->setSn($headers['sn'])
@@ -143,6 +150,8 @@ class Work
             ->response(0)
             ->pack());
         Logger::getInstance()->write($client['remote_ip'] . '|' . $headers['command'] . '|' . $bytes->getResponseData() . '|' . intval($isSend), 'response');
+       error_log($fd."|".var_export($isSend,1)."\n",3,'/tmp/debug20180222.log'); 
+       error_log(json_encode($client)."\n\n\n",3,'/tmp/debug20180222.log'); 
         return $isSend;
     }
 
