@@ -100,12 +100,12 @@ final class Config
      *
      * @var integer
      */
-    const loginTimeout = 1000000;
+    const loginTimeout = 120000;
 
     /**
      * 检查区间
      */
-    const checkInterval = 80000;
+    const checkInterval = 60000;
 
     /**
      * 心跳 30秒内没有心跳默认断开连接
