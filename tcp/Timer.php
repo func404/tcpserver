@@ -57,8 +57,13 @@ class Timer
                     'device_id' => $deviceId
                 ]);
                 Cache::getInstance()->hDel(Config::caches['connections'], $client->fd);
-                Cache::getInstance()->hDel(Config::caches['clients'], $deviceId);
-                
+                $device =  Cache::getInstance()->hGet(Config::caches['clients'], $deviceId);
+                if ($device) {
+                    Cache::getInstance()->hDel(Config::caches['clients'], $deviceId);
+                    $device =  json_decode($device);
+                    Cache::getInstance()->hDel(Config::caches['login_tags'], $deviceId . '_' . $device->login_id);
+                    
+                }
                 if ($server->exist($client->fd)) {
                     $data = Byte::getInstance()->response(Error::heartBeatTimeout)->pack();
                     $server->send($client->fd, $data);
