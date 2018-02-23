@@ -327,6 +327,7 @@ class Work
             DB::getInstance()->query($sql);
             $rst = DB::getInstance()->getInsertId();
             
+            $cacheTotal = Cache::getInstance()->hGet(Config::caches['transaction_count'], $device->device_id . '_' . $transactionNumber);
             // 清除缓存数据
             Cache::getInstance()->hDel(Config::caches['transaction_count'], $device->device_id . '_' . $transactionNumber);
             Cache::getInstance()->hDel(Config::caches['transaction_tags'], $device->device_id . '_' . $transactionNumber);
@@ -341,7 +342,7 @@ class Work
             // 释放设备
             $this->freeDevice($device);
             
-            if ($total != Cache::getInstance()->hGet(Config::caches['transaction_count'], $device->device_id . '_' . $transactionNumber)) {
+            if ($total != $cacheTotal) {
                 $responseData = $bytes->setSn($headers['sn'] ++)
                     ->response(Error::tagsNumberUnmatch)
                     ->pack();

@@ -95,8 +95,18 @@ class Server
             
             $length = strlen($data);
             $decArr = unpack('C' . $length, $data);
+            
             $tmpdata = implode(',', $decArr);
             Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'] . ':' . $client['remote_port'] . ':' . $tmpdata, 'client');
+            
+            if (count($decArr)<9) {
+                $logStr = 'PackageStructureError|' . Error::packageStructureError . '|' . $fd . '|' . $client['remote_ip'] . '|' . $client['remote_port'] . '|' . $tmpdata;
+                Logger::getInstance()->write($logStr, 'error');
+                $response = (new Byte())->setSn($headers['sn'] ++)
+                ->response(Error::packageStructureError)
+                ->pack();
+                return  $server->send($fd, $response);
+            }
             
             // 验证请求头
             foreach ($headers as $header) {
