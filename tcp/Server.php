@@ -99,13 +99,16 @@ class Server
             $tmpdata = implode(',', $decArr);
             Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'] . ':' . $client['remote_port'] . ':' . $tmpdata, 'client');
             
-            if (count($decArr)<9) {
-                $logStr = 'PackageStructureError|' . Error::packageStructureError . '|' . $fd . '|' . $client['remote_ip'] . '|' . $client['remote_port'] . '|' . $tmpdata;
-                Logger::getInstance()->write($logStr, 'error');
+            if (count($decArr) < 9) {
                 $response = (new Byte())->setSn($headers['sn'] ++)
-                ->response(Error::packageStructureError)
-                ->pack();
-                return  $server->send($fd, $response);
+                    ->response(Error::packageStructureError)
+                    ->pack();
+                
+                $responseRst = $server->send($fd, $response);
+                $logStr = 'PackageStructureError|' . Error::packageStructureError . '|' . $fd . '|' . $client['remote_ip'] . '|' . $client['remote_port'] . '|' . $tmpdata . '|' . intval($responseRst);
+                Logger::getInstance()->write($logStr, 'error');
+                $server->close($fd);
+                return $responseRst;
             }
             
             // 验证请求头
@@ -114,11 +117,12 @@ class Server
                     $response = (new Byte())->setSn($headers['sn'] ++)
                         ->response(Error::packageStructureError)
                         ->pack();
-                    $logStr = 'PackageStructureError|' . Error::packageStructureError . '|' . $fd . '|' . $client['remote_ip'] . '|' . $client['remote_port'] . '|' . $tmpdata;
+                    
+                    $responseRst = $server->send($fd, $response);
+                    $logStr = 'PackageStructureError|' . Error::packageStructureError . '|' . $fd . '|' . $client['remote_ip'] . '|' . $client['remote_port'] . '|' . $tmpdata . '|' . intval($responseRst);
                     Logger::getInstance()->write($logStr, 'error');
-                    $server->send($fd, $response);
                     $server->close($fd);
-                    return false;
+                    return $responseRst;
                 }
             }
             
@@ -127,9 +131,10 @@ class Server
                 $response = (new Byte())->setSn($headers['sn'] ++)
                     ->response(Error::packageCheckSumError)
                     ->pack();
-                $logStr = 'packageCheckSumError|' . Error::PackageCheckSumError . '|' . $fd . '|' . $client['remote_ip'] . '|' . $client['remote_port'] . '|' . $tmpdata;
+                $responseRst = $server->send($fd, $response);
+                $logStr = 'packageCheckSumError|' . Error::PackageCheckSumError . '|' . $fd . '|' . $client['remote_ip'] . '|' . $client['remote_port'] . '|' . $tmpdata . '|' . intval($responseRst);
                 Logger::getInstance()->write($logStr, 'error');
-                $server->send($fd, $response);
+                
                 $server->close($fd);
                 return false;
             }
@@ -164,9 +169,9 @@ class Server
                     $responseData = (new Byte())->setSn($headers['sn'] ++)
                         ->response(Error::invalidCommand)
                         ->pack();
-                    $logStr = 'InvalidCommand|' . Error::InvalidCommand . '|' . $fd . '|' . $client['remote_ip'] . '|' . $client['remote_port'] . '|' . $tmpdata;
-                    Logger::getInstance()->write($logStr, 'error');
                     $responseRst = $server->send($fd, $responseData);
+                    $logStr = 'InvalidCommand|' . Error::InvalidCommand . '|' . $fd . '|' . $client['remote_ip'] . '|' . $client['remote_port'] . '|' . $tmpdata . '|' . intval($responseRst);
+                    Logger::getInstance()->write($logStr, 'error');
                     $closeRst = $server->close($fd);
                     return false;
                 }
