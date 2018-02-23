@@ -100,14 +100,12 @@ class Server
             
             // 验证请求头
             foreach ($headers as $header) {
-                if (strlen($header) == 0) {
+                if (strlen($header) === 0) {
                     $response = (new Byte())->setSn($headers['sn'] ++)
                         ->response(Error::packageStructureError)
                         ->pack();
-                    Logger::getInstance()->write('PackageStructureError:' . Error::packageStructureError, 'error');
-                    Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'] . ':' . $client['remote_port'], 'error');
-                    Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'] . ':' . $client['remote_port'] . ':' . $tmpdata, 'error');
-                    Logger::getInstance()->write(json_encode($headers), 'error');
+                    $logStr = 'PackageStructureError|' . Error::packageStructureError . '|' . $fd . '|' . $client['remote_ip'] . '|' . $client['remote_port'] . '|' . $tmpdata;
+                    Logger::getInstance()->write($logStr, 'error');
                     $server->send($fd, $response);
                     $server->close($fd);
                     return false;
@@ -119,8 +117,8 @@ class Server
                 $response = (new Byte())->setSn($headers['sn'] ++)
                     ->response(Error::packageCheckSumError)
                     ->pack();
-                Logger::getInstance()->write('PackageCheckSumError:' . Error::packageCheckSumError, 'error');
-                Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'], 'error');
+                $logStr = 'packageCheckSumError|' . Error::PackageCheckSumError . '|' . $fd . '|' . $client['remote_ip'] . '|' . $client['remote_port'] . '|' . $tmpdata;
+                Logger::getInstance()->write($logStr, 'error');
                 $server->send($fd, $response);
                 $server->close($fd);
                 return false;
@@ -156,9 +154,8 @@ class Server
                     $responseData = (new Byte())->setSn($headers['sn'] ++)
                         ->response(Error::invalidCommand)
                         ->pack();
-                    Logger::getInstance()->write('InvalidCommand:' . Error::invalidCommand, 'error');
-                    Logger::getInstance()->write('Command:' . $headers['command'], 'error');
-                    Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'] . ':' . $client['remote_port'], 'error');
+                    $logStr = 'InvalidCommand|' . Error::InvalidCommand . '|' . $fd . '|' . $client['remote_ip'] . '|' . $client['remote_port'] . '|' . $tmpdata;
+                    Logger::getInstance()->write($logStr, 'error');
                     $responseRst = $server->send($fd, $responseData);
                     $closeRst = $server->close($fd);
                     return false;
@@ -174,7 +171,13 @@ class Server
         if (! empty($client)) {
             $client = json_decode($client, true);
             if ($client['device_id']) {
-                Cache::getInstance()->hDel(Config::caches['clients'], $client['device_id']);
+                $device = Cache::getInstance()->hGet(Config::caches['clients'], $client['device_id']);
+                if ($device) {
+                    $device = json_decode($device);
+                    Cache::getInstance()->hDel(Config::caches['clients'], $client['device_id']); // 清除设备
+                    Cache::getInstance()->hDel(Config::caches['login_tags'], $device->device_id . '_' . $device->login_id); // 清除登录标签
+                    Cache::getInstance()->hDel(Config::caches['login_count'], $device->device_id . '_' . $device->login_id); // 清除登录标签数量
+                }
             }
             // 记录设备断开情况
             fwrite(STDOUT, 'DEVICE_DISCONNECT|' . implode('|', $client) . "\n");
@@ -185,7 +188,7 @@ class Server
         $clientInfo = date('Y-m-d H:i:s') . '|' . implode('|', $connection) . '|' . $fd;
         fwrite(STDOUT, 'CLIENT_DISCONNECT|' . $clientInfo . "\n");
         
-        Cache::getInstance()->hDel(Config::caches['connections'], $fd);
+        Cache::getInstance()->hDel(Config::caches['connections'], $fd); // 清除连接数
     }
 
     public static function onShutdown($server)

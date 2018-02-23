@@ -158,13 +158,18 @@ class Byte
         
         $return['header'] = $this->header = hexdec(dechex($decArr[1]) . dechex($decArr[2]));
         
-        $return['length'] = $this->length = $this->bigBytes2int([$decArr[3],$decArr[4]]);
+        $return['length'] = $this->length = $this->bigBytes2int([
+            $decArr[3],
+            $decArr[4]
+        ]);
         
         $packageCount = count($decArr) / ($this->length + 4);
         
         if ($packageCount > 1) {
             $decArr = array_slice($decArr, 0, $this->length + 4);
-            $decArr =  array_merge(['keyoffset'],$decArr);
+            $decArr = array_merge([
+                'keyoffset'
+            ], $decArr);
             unset($decArr[0]);
             $this->requestData = implode(',', $decArr);
             $length = count($decArr);
@@ -178,8 +183,11 @@ class Byte
         $return['checksum'] = $this->checksum = $decArr[$length];
         
         $return['is_checked'] = $this->isChecked;
+        
         $checksum = 0;
+        
         $this->load = [];
+        
         for ($i = 1; $i < $length; $i ++) {
             if ($i > 8) {
                 $this->load[] = $decArr[$i];
@@ -192,11 +200,12 @@ class Byte
         
         if ($checksum == $this->checksum) {
             $return['is_checked'] = $this->isChecked = true;
-        }else {
-            error_log($packageCount.'|'.$this->requestData."\n",3,'/tmp/checksum.log');
-            error_log($packageCount.'|'.$tmpRequest."\n\n\n",3,'/tmp/checksum.log');
+        } else {
+            // 记录错误信息
+            $dt = date("Y-m-d H:i:s");
+            error_log($dt . '|' . $packageCount . '|' . $this->requestData . "\n", 3, '/tmp/checksum.log');
+            error_log($packageCount . '|' . $tmpRequest . "\n\n\n", 3, '/tmp/checksum.log');
         }
-            $return['is_checked'] = $this->isChecked = true;
         
         $this->headers = $return;
         return $this;

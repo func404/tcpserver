@@ -1,4 +1,7 @@
 <?php
+/**
+ * 主业务逻辑
+ */
 namespace tcp;
 
 use config\Device;
@@ -36,10 +39,9 @@ class Work
                 ->pack();
             
             // RESPONSE invalidParameter
-            $responseRst = $server->send($fd, $responseData);
-            $closeRst = $server->close($fd);
+            $closeRst = $this->send($server, $fd, $responseData, true);
             CH::pub(Config::broadcastChannels['device'], 'InvalidParameter:' . json_encode($loginInfo));
-            return false;
+            return $closeRst;
         }
         $device = DB::getInstance()->getDeviceByNo($loginInfo['device_number']);
         
@@ -47,12 +49,12 @@ class Work
             $responseData = Byte::getInstance()->setSn($headers['sn'] ++)
                 ->response(Error::deviceUnlogined)
                 ->pack();
-            Logger::getInstance()->write('DeviceUnlogined:' . Error::deviceUnlogined, 'error');
-            Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'], 'error');
             CH::pub(Config::broadcastChannels['device'], 'DeviceUnlogined:' . json_encode($loginInfo));
             
             // RESPONSE deviceUnlogined
             $closeRst = $this->send($server, $fd, $responseData, true);
+            $logStr = 'DeviceUnlogined|' . Error::deviceUnlogined . '|' . $fd . '|' . $client['remote_ip'] . '|' . $client['remote_port'] . '|' . $bytes->requestData . '|' . intval($closeRst);
+            Logger::getInstance()->write($logStr, 'error');
             return $closeRst;
         }
         
@@ -61,19 +63,14 @@ class Work
                 ->setCommand(0x01)
                 ->response(Error::deviceKeyError)
                 ->pack();
-            Logger::getInstance()->write('DeviceKeyError:' . Error::deviceKeyError, 'error');
-            Logger::getInstance()->write('RequestFrom:' . $client['remote_ip'] . ':' . $client['remote_port'], 'error');
             CH::pub(Config::broadcastChannels['device'], 'DeviceKeyError:' . json_encode($loginInfo));
             
             // RESPONSE deviceKeyError
-            // RESPONSE deviceUnlogined
             $closeRst = $this->send($server, $fd, $responseData, true);
+            $logStr = 'DeviceKeyError|' . Error::deviceKeyError . '|' . $fd . '|' . $client['remote_ip'] . '|' . $client['remote_port'] . '|' . $bytes->requestData . '|' . intval($closeRst);
+            Logger::getInstance()->write($logStr, 'error');
             return $closeRst;
         }
-        
-     //   if ($loginInfo['transaction_number']) { // 如果流水号存在
-     //       Cache::getInstance()->delete('');
-     //   }
         
         // 保存登录日志
         $loginId = DB::getInstance()->createLoginLog([
@@ -99,6 +96,7 @@ class Work
         $clientDevice->current_transaction = 'waiting';
         $clientDevice->status = $loginInfo['status'];
         $clientDevice->sn = ++ $headers['sn'];
+        
         /*
          * 缓存客户端信息
          */
@@ -107,7 +105,6 @@ class Work
             $clientDevice->current_transaction = 'shopping';
         }
         Cache::getInstance()->hSet(Config::caches['clients'], $device['device_id'], json_encode($clientDevice->toArray()));
-       error_log(json_encode($loginInfo)."\n",3,'/tmp/debug20180222.log'); 
         
         /*
          * 更新连接数
@@ -122,11 +119,9 @@ class Work
             CH::pub(Config::broadcastChannels['device'], 'serverError:' . json_encode($loginInfo));
             
             // RESPONSE serverError
-            $responseRst = $server->send($fd, $responseData);
-            $closeRst = $server->close($fd);
-            return false;
+            $responseRst = $this->send($server, $fd, $responseData); // 错误不断开
+            return $responseRst;
         }
-       error_log($connection."\n",3,'/tmp/debug20180222.log'); 
         Cache::getInstance()->hSet(Config::caches['connections'], $fd, json_encode(array_merge(json_decode($connection, true), [
             'login_id' => $loginId,
             'device_id' => $device['device_id']
@@ -141,8 +136,6 @@ class Work
             'login_id' => $loginId,
             'device_id' => $device['device_id']
         ])));
-       $connection2 = Cache::getInstance()->hGet(Config::caches['connections'], $fd);
-       error_log($connection2."\n",3,'/tmp/debug20180222.log'); 
         
         // 响应客户端
         $isSend = $server->send($fd, Byte::getInstance()->setSn($headers['sn'])
@@ -150,8 +143,6 @@ class Work
             ->response(0)
             ->pack());
         Logger::getInstance()->write($client['remote_ip'] . '|' . $headers['command'] . '|' . $bytes->getResponseData() . '|' . intval($isSend), 'response');
-       error_log($fd."|".var_export($isSend,1)."\n",3,'/tmp/debug20180222.log'); 
-       error_log(json_encode($client)."\n\n\n",3,'/tmp/debug20180222.log'); 
         return $isSend;
     }
 
@@ -162,7 +153,7 @@ class Work
      * @param resource $server
      *            TCP server
      * @param int $fd            
-     * @param unknown $from_id            
+     * @param int $from_id            
      * @param string $data            
      * @param array $headers            
      * @param array $client            
@@ -177,7 +168,8 @@ class Work
                 ->response(Error::heartBeatTimeout)
                 ->pack();
             $closeRst = $this->send($server, $fd, $responseData, true);
-            Logger::getInstance()->write('HeartBeatTimeout:' . Error::heartBeatTimeout . '|' . 'RequestFrom:' . $client['remote_ip'] . ':' . $client['remote_port'], 'error');
+            $logStr = 'HeartBeatTimeout|' . Error::heartBeatTimeout . '|' . $fd . '|' . $client['remote_ip'] . '|' . $client['remote_port'] . '|' . $bytes->requestData . '|' . intval($closeRst);
+            Logger::getInstance()->write($logStr, 'error');
             return $closeRst;
         } else {
             $responseData = $bytes->setSn($headers['sn'])
@@ -226,9 +218,10 @@ class Work
             $responseData = $bytes->hasNotBeReady($headers['sn'] ++)
                 ->response(Error::hasNotBeReady)
                 ->pack();
-            $closeRst = $this->send($server, $fd, $responseData, true);
-            Logger::getInstance()->write('hasNotBeReady:' . Error::hasNotBeReady . '|' . 'RequestFrom:' . $client['remote_ip'] . ':' . $client['remote_port'], 'error');
-            return $closeRst;
+            $responseRst = $this->send($server, $fd, $responseData); // 错误不断开
+            $logStr = 'hasNotBeReady|' . Error::hasNotBeReady . '|' . $fd . '|' . $client['remote_ip'] . '|' . $client['remote_port'] . '|' . $bytes->requestData . '|' . intval($responseRst);
+            Logger::getInstance()->write($logStr, 'error');
+            return $responseRst;
         }
         
         $closeInfo = $bytes->getClosedoor();
@@ -252,7 +245,7 @@ class Work
             $this->freeDevice($device);
         } else {
             // 缓存标签变化数量
-            Cache::getInstance()->hSet(Config::caches['transaction_count'], $device['device_id'] . '_' . $transactionNumber, $closeInfo['different_count']);
+            Cache::getInstance()->hSet(Config::caches['transaction_count'], $device->device_id . '_' . $transactionNumber, $closeInfo['different_count']);
         }
         
         // 响应客户端
@@ -279,9 +272,10 @@ class Work
             $responseData = $bytes->setSn($headers['sn'] ++)
                 ->response(Error::hasNotBeReady)
                 ->pack();
-            $closeRst = $this->send($server, $fd, $responseData, true);
-            Logger::getInstance()->write('hasNotBeReady:' . Error::hasNotBeReady . '|' . 'RequestFrom:' . $client['remote_ip'] . ':' . $client['remote_port'], 'error');
-            return $closeRst;
+            $responseRst = $this->send($server, $fd, $responseData); // 错误不断开
+            $logStr = 'hasNotBeReady|' . Error::hasNotBeReady . '|' . $fd . '|' . $client['remote_ip'] . '|' . $client['remote_port'] . '|' . $bytes->requestData . '|' . intval($responseRst);
+            Logger::getInstance()->write($logStr, 'error');
+            return $responseRst;
         }
         
         $transactionNumber = $device->current_data;
@@ -347,11 +341,14 @@ class Work
             // 释放设备
             $this->freeDevice($device);
             
-            if ($total != Cache::getInstance()->hGet(Config::caches['transaction_count'], $device['device_id'] . '_' . $transactionNumber)) {
+            if ($total != Cache::getInstance()->hGet(Config::caches['transaction_count'], $device->device_id . '_' . $transactionNumber)) {
                 $responseData = $bytes->setSn($headers['sn'] ++)
                     ->response(Error::tagsNumberUnmatch)
                     ->pack();
-                return $this->send($server, $fd, $responseData);
+                $responseRst = $this->send($server, $fd, $responseData); // 错误不断开
+                $logStr = 'tagsNumberUnmatch|' . Error::tagsNumberUnmatch . '|' . $fd . '|' . $client['remote_ip'] . '|' . $client['remote_port'] . '|' . $bytes->requestData . '|' . intval($responseRst);
+                Logger::getInstance()->write($logStr, 'error');
+                return $responseRst;
             } else {
                 $responseData = $bytes->setSn($headers['sn'] ++)
                     ->response()
@@ -452,7 +449,8 @@ class Work
                 ->response(Error::deviceUnlogined)
                 ->pack();
             $closeRst = $this->send($server, $fd, $responseData, true);
-            Logger::getInstance()->write('deviceUnlogined:' . Error::deviceUnlogined . '|' . 'RequestFrom:' . $client['remote_ip'] . ':' . $client['remote_port'], 'error');
+            $logStr = 'deviceUnlogined|' . Error::deviceUnlogined . '|' . $fd . '|' . $client['remote_ip'] . '|' . $client['remote_port'] . '|' . $bytes->requestData . '|' . intval($closeRst);
+            Logger::getInstance()->write($logStr, 'error');
             return $closeRst;
         }
         $loginTags = $bytes->getLoginTags();
@@ -470,7 +468,10 @@ class Work
                 $responseData = $bytes->setSn($headers['sn'] ++)
                     ->response(Error::tagsNumberUnmatch)
                     ->pack();
-                return $this->send($server, $fd, $responseData);
+                $responseRst = $this->send($server, $fd, $responseData); // 错误不断开
+                $logStr = 'tagsNumberUnmatch|' . Error::tagsNumberUnmatch . '|' . $fd . '|' . $client['remote_ip'] . '|' . $client['remote_port'] . '|' . $bytes->requestData . '|' . intval($responseRst);
+                Logger::getInstance()->write($logStr, 'error');
+                return $responseRst;
             }
             $inserts = "Insert into  `wl_device_tags` (`device_id`,`device_login_id`,`tag`,`created_time`) values ";
             $dt = date("Y-m-d H:i:s");
@@ -493,7 +494,11 @@ class Work
                 $responseData = $bytes->setSn($headers['sn'] ++)
                     ->response(Error::tagsNumberUnmatch)
                     ->pack();
-                return $this->send($server, $fd, $responseData);
+                
+                $responseRst = $this->send($server, $fd, $responseData); // 错误不断开
+                $logStr = 'tagsNumberUnmatch|' . Error::tagsNumberUnmatch . '|' . $fd . '|' . $client['remote_ip'] . '|' . $client['remote_port'] . '|' . $bytes->requestData . '|' . intval($responseRst);
+                Logger::getInstance()->write($logStr, 'error');
+                return $responseRst;
             } else {
                 $responseData = $bytes->setSn($headers['sn'] ++)
                     ->response()
@@ -551,6 +556,7 @@ class Work
                 ->response(Error::hasNotBeReady)
                 ->pack();
             $closeRst = $this->send($server, $fd, $responseData, true);
+            
             Logger::getInstance()->write('hasNotBeReady:' . Error::hasNotBeReady . '|' . 'RequestFrom:' . $client['remote_ip'] . ':' . $client['remote_port'], 'error');
             return $closeRst;
         }
@@ -1113,7 +1119,7 @@ class Work
     private function send($server, $fd, $data, $close = false)
     {
         $rst = $server->send($fd, $data);
-        Logger::getInstance()->writeBin($data, 'response_debug');
+        // Logger::getInstance()->writeBin($data, 'response_debug');
         if ($close) {
             Logger::getInstance()->writeBin($data, 'response_error');
             return $server->close($fd);
