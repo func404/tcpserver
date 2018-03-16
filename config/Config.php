@@ -81,13 +81,13 @@ final class Config
     ];
 
     const tcpServerOpt = [
-        'worker_num' => 8,
-        'daemonize' => true,
-        'max_request' => 10000,
-        'dispatch_mode' => 2,
+        'worker_num' => 8,  //开启的进程数
+        'daemonize' => true, // 守护进程化  后台执行
+        'max_request' => 10000,//此参数表示worker进程在处理完n次请求后结束运行。manager会重新创建一个worker进程。此选项用来防止worker进程内存溢出。
+        'dispatch_mode' => 2, //worker进程数据包分配模式  dispatch_mode = 1 //1平均分配  2按FD取模固定分配 3抢占式分配
         'debug_mode' => 1,
-        'log_file' => '/data/log/wlxs_tcp.log',
-        'pid_file' => '/var/run/wlxs_tcp.pid'
+        'log_file' => '/data/log/wlxs_tcp.log',//日志文件路径  指定swoole错误日志文件
+        'pid_file' => '/var/run/wlxs_tcp.pid'//产生的进程pid文件
     ];
 
     const ipAllow = [

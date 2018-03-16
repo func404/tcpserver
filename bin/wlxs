@@ -1,6 +1,7 @@
 #!/usr/bin/php
 <?php
-set_include_path(get_include_path() . PATH_SEPARATOR . dirname(__DIR__));
+set_include_path(get_include_path() . PATH_SEPARATOR . dirname(__DIR__)); //设置初始变量
+
 
 spl_autoload_register(function ($class_name) {
     if (preg_match('/^(tcp|lib|config)/', $class_name)) {
@@ -12,40 +13,40 @@ spl_autoload_register(function ($class_name) {
             include_once $ns . DIRECTORY_SEPARATOR . $class . '.php';
         }
     }
-});
+}); //自动加载命名空间下的类
 
 function start()
 {
-    if(file_exists(config\Config::tcpServerOpt['pid_file'])){
-        $handle = fopen(config\Config::tcpServerOpt['pid_file'], 'r');
-        $pid  = trim(fgets($handle));
-        fclose($handle);
+    if(file_exists(config\Config::tcpServerOpt['pid_file'])){ //检查pid文件是否存在
+        $handle = fopen(config\Config::tcpServerOpt['pid_file'], 'r'); //读取pid文件
+        $pid  = trim(fgets($handle));   //
+        fclose($handle); //关闭
         if ($pid) {
-            exec('ps p ' . $pid, $tmp);
+            exec('ps p ' . $pid, $tmp);  //显示当前进程 (process) 的状态。
             $next=0;
             if (count($tmp) > 1) {
-                fwrite(STDOUT, "This Process is runing[{$pid}],please input 1 [skip and exit] ,or 2 [kill and start again] ,default 1: ");
-                $next = trim(fgets(STDIN));
+                fwrite(STDOUT, "This Process is runing[{$pid}],please input 1 [skip and exit] ,or 2 [kill and start again] ,default 1: ");  //在控制台 输出 STDOUT
+                $next = trim(fgets(STDIN));  //输入信息
                 if ($next == 2) {
                     stop();
-                    fwrite(STDOUT, "Process is stopping \n");
+                    fwrite(STDOUT, "Process is stopping \n"); //输入2停止进程
                     sleep(5);
                 }else{
-                    fwrite(STDOUT, 'Process is running ' . $pid . "[not restart!]\n");
+                    fwrite(STDOUT, 'Process is running ' . $pid . "[not restart!]\n");//输入1 退出
                     exit();
                 }
             }
         }
     }
-    $config = config\Config::tcpServer;
-    $server = new \swoole_server($config['host'], $config['port']);
+    $config = config\Config::tcpServer; 
+    $server = new \swoole_server($config['host'], $config['port']); //创建一个TCP服务器
     
-    \swoole_set_process_name(config\Config::processName);
-    $opt = config\Config::tcpServerOpt;
-    $server->set($opt);
+    \swoole_set_process_name(config\Config::processName); //设置进程名称
+    $opt = config\Config::tcpServerOpt; //
+    $server->set($opt); //设置参数
     
-    $server->on('Start', [
-        'tcp\Server',
+    $server->on('Start', [     //第1个参数是回调的名称, 大小写不敏感，具体内容参考回调函数列表，事件名称字符串不要加on 
+        'tcp\Server',  //第2个函数是回调的PHP函数，可以是函数名的字符串，类静态方法，对象方法数组，匿名函数。
         'onStart'
     ]);
     $server->on('Connect', [
